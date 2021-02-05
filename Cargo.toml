@@ -5,3 +5,7 @@ authors = ["Onno Valkering"]
 edition = "2018"
 
 [dependencies]
+anyhow = "1"
+nix = "0.19"
+socket2 = "0.3"
+tokio = { version = "1", features = ["full"] }
