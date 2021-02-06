@@ -1,22 +1,18 @@
 # SOCKS toolkit
 
-A SOCKS toolkit for Rust, based on Tokio.
-
-# Capabilities
+A SOCKS toolkit for Rust, based on Tokio. SOCKS5 ([rfc1928](https://tools.ietf.org/html/rfc1928)) and SOCKS6 ([draft-11](https://tools.ietf.org/html/draft-olteanu-intarea-socks-6-11))  are supported.
 
 ## Clients
-The toolkit includes clients for SOCKS5 and SOCKS6.
+All client commands are supported: `CONNECT`, `BIND`, and `UDP ASSOCIATE`.
 
 ```rust
-let proxy_addr = Address::new("localhost", 1080);
-let credentials = Credentials::new("username", "password");
+use socksx::{self, Address, Credentials, Socks6Client};
 
-let client = Socks5Client::new(proxy_addr, Some(credentials));
+let proxy_server = Address::new("127.0.0.1", 1080);
+let credentials = Credentials::new("myuser", "mypass");
+let client = Socks6Client::new(proxy_server, Some(credentials));
 
-let dst_addr = Address::new("google.com", 80);
-let socket = client.connect(dst_addr).await?;
+let destination = Address::new("github.com", 80);
+let socket = client.connect(destination).await?;
 ```
 
-```rust
-
-```
