@@ -55,22 +55,24 @@ impl Address {
 }
 
 pub struct Credentials {
-    username: String,
-    password: String,
+    username: Vec<u8>,
+    password: Vec<u8>,
 }
 
 impl Credentials {
     ///
     ///
     ///
-    pub fn new<S: Into<String>>(
+    pub fn new<S: Into<Vec<u8>>>(
         username: S,
         password: S,
     ) -> Self {
-        // TODO: max length for username/password is 255.
+        let username = username.into();
+        let password = password.into();
+
         Credentials {
-            username: username.into(),
-            password: password.into(),
+            username,
+            password
         }
     }
 }

@@ -1,11 +1,11 @@
 use crate::{constants::*, Address, Credentials};
-use anyhow::{bail, Result};
-use std::net::IpAddr;
+use anyhow::{bail, ensure, Result};
+use std::net::{IpAddr, SocketAddr};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpSocket, TcpStream};
 
 pub struct Socks5Client {
-    proxy_addr: Address,
+    proxy_addr: SocketAddr,
     credentials: Option<Credentials>,
 }
 
@@ -17,6 +17,8 @@ impl Socks5Client {
         proxy_addr: Address,
         credentials: Option<Credentials>,
     ) -> Self {
+        let proxy_addr = proxy_addr.as_socket_addr();
+
         Socks5Client {
             proxy_addr,
             credentials,
@@ -29,11 +31,20 @@ impl Socks5Client {
     ///
     /// [rfc1928] https://tools.ietf.org/html/rfc1928
     pub async fn connect(
-        self,
+        &self,
         dst_addr: Address,
     ) -> Result<TcpStream> {
-        let socket = TcpSocket::new_v4()?;
-        let mut stream = socket.connect(self.proxy_addr.as_socket_addr()).await?;
+        if let Some(Credentials { username, password }) = &self.credentials {
+            ensure!(username.len() > 255, "Username can be no longer than 255 bytes.");
+            ensure!(password.len() > 255, "Password can be no longer than 255 bytes.");
+        }
+
+        let socket = match &self.proxy_addr {
+            SocketAddr::V4(_) => TcpSocket::new_v4()?,
+            SocketAddr::V6(_) => TcpSocket::new_v6()?,
+        };
+
+        let mut stream = socket.connect(self.proxy_addr).await?;
 
         // Enter authentication negotiation.
         let auth_method = self.negotiate_auth_method(&mut stream).await?;
@@ -160,8 +171,8 @@ impl Socks5Client {
         stream: &mut TcpStream,
         credentials: &Credentials,
     ) -> Result<()> {
-        let username = credentials.username.as_bytes();
-        let password = credentials.password.as_bytes();
+        let username = credentials.username.clone();
+        let password = credentials.password.clone();
 
         let mut request = vec![SOCKS_AUTH_VER];
 
