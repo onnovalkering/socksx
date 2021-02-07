@@ -1,7 +1,9 @@
 use std::net::{IpAddr, SocketAddr};
 
+mod copy;
 mod socks5;
 
+pub use copy::copy_bidirectional;
 pub use socks5::Socks5Client;
 
 pub mod constants {
@@ -70,9 +72,6 @@ impl Credentials {
         let username = username.into();
         let password = password.into();
 
-        Credentials {
-            username,
-            password
-        }
+        Credentials { username, password }
     }
 }
