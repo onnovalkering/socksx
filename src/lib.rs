@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate log;
+
 use std::net::{IpAddr, SocketAddr};
 
 mod copy;
@@ -5,7 +8,7 @@ mod socks5;
 mod util;
 
 pub use copy::copy_bidirectional as bidirectional_copy;
-pub use socks5::Socks5Client;
+pub use socks5::{Socks5Client, Socks5Guard, Socks5Handler};
 pub use util::get_original_dst;
 
 pub mod constants {
@@ -13,6 +16,7 @@ pub mod constants {
     pub const SOCKS_AUTH_VER: u8 = 0x01u8;
     pub const SOCKS_AUTH_NOT_REQUIRED: u8 = 0x00u8;
     pub const SOCKS_AUTH_USERNAME_PASSWORD: u8 = 0x02u8;
+    pub const SOCKS_AUTH_NO_ACCEPTABLE_METHODS: u8 = 0xFFu8;
     pub const SOCKS_AUTH_SUCCESS: u8 = 0x00u8;
     pub const SOCKS_CMD_CONNECT: u8 = 0x01u8;
     pub const SOCKS_CMD_BIND: u8 = 0x02u8;
