@@ -1,11 +1,12 @@
 use crate::{constants::*, Address, Credentials};
 use anyhow::{bail, ensure, Result};
-use std::net::{IpAddr, SocketAddr};
+use std::net::IpAddr;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::{TcpSocket, TcpStream};
+use tokio::net::TcpStream;
 
+#[derive(Clone)]
 pub struct Socks5Client {
-    proxy_addr: SocketAddr,
+    proxy_addr: String,
     credentials: Option<Credentials>,
 }
 
@@ -13,14 +14,12 @@ impl Socks5Client {
     ///
     ///
     ///
-    pub fn new(
-        proxy_addr: Address,
+    pub fn new<A: Into<String>>(
+        proxy_addr: A,
         credentials: Option<Credentials>,
     ) -> Self {
-        let proxy_addr = proxy_addr.as_socket_addr();
-
         Socks5Client {
-            proxy_addr,
+            proxy_addr: proxy_addr.into(),
             credentials,
         }
     }
@@ -39,12 +38,7 @@ impl Socks5Client {
             ensure!(password.len() > 255, "Password can be no longer than 255 bytes.");
         }
 
-        let socket = match &self.proxy_addr {
-            SocketAddr::V4(_) => TcpSocket::new_v4()?,
-            SocketAddr::V6(_) => TcpSocket::new_v6()?,
-        };
-
-        let mut stream = socket.connect(self.proxy_addr).await?;
+        let mut stream = TcpStream::connect(&self.proxy_addr).await?;
 
         // Enter authentication negotiation.
         let auth_method = self.negotiate_auth_method(&mut stream).await?;

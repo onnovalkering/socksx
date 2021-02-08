@@ -2,9 +2,11 @@ use std::net::{IpAddr, SocketAddr};
 
 mod copy;
 mod socks5;
+mod util;
 
-pub use copy::copy_bidirectional;
+pub use copy::copy_bidirectional as bidirectional_copy;
 pub use socks5::Socks5Client;
+pub use util::get_original_dst;
 
 pub mod constants {
     pub const SOCKS_VER_5: u8 = 0x05u8;
@@ -56,6 +58,7 @@ impl Address {
     }
 }
 
+#[derive(Clone)]
 pub struct Credentials {
     username: Vec<u8>,
     password: Vec<u8>,
