@@ -7,16 +7,16 @@ use tokio::net::{TcpListener, TcpStream};
 #[tokio::main]
 async fn main() -> Result<()> {
     let listener = TcpListener::bind("127.0.0.1:46666").await?;
-    let client = Socks5Client::new("127.0.0.1:1080", None);
+    let client = Socks5Client::new("127.0.0.1:1080", None).await?;
 
     loop {
-        let (socket, _) = listener.accept().await?;
-        tokio::spawn(redirect(socket, client.clone()));
+        let (stream, _) = listener.accept().await?;
+        tokio::spawn(redirect(stream, client.clone()));
     }
 }
 
-/// Redirect an incoming TCP socket through the
-/// proxy. The original destination of the socket
+/// Redirect an incoming TCP stream through the
+/// proxy. The original destination of the stream
 /// is preserved, by iptables, as an socket option.
 async fn redirect(
     incoming: TcpStream,
@@ -25,7 +25,7 @@ async fn redirect(
     let mut incoming = incoming;
 
     let dst_addr = socksx::get_original_dst(&incoming)?;
-    let mut outgoing = client.connect(dst_addr).await?;
+    let (mut outgoing, _) = client.connect(dst_addr).await?;
 
     socksx::bidirectional_copy(&mut incoming, &mut outgoing).await?;
 
