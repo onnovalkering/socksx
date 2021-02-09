@@ -11,7 +11,7 @@ mod util;
 
 pub use copy::copy_bidirectional as bidirectional_copy;
 pub use socks5::{Socks5Client, Socks5Guard, Socks5Handler};
-pub use util::{resolve_addr, get_original_dst};
+pub use util::{get_original_dst, resolve_addr};
 
 pub mod constants {
     pub const SOCKS_VER_5: u8 = 0x05u8;
@@ -52,6 +52,42 @@ impl Address {
             Address::Domainname { host, port }
         }
     }
+
+    ///
+    ///
+    ///
+    pub fn as_socks_bytes(&self) -> Vec<u8> {
+        use constants::*;
+        let mut bytes = vec![];
+
+        match self {
+            Address::Ip(dst_addr) => {
+                match dst_addr.ip() {
+                    IpAddr::V4(host) => {
+                        bytes.push(SOCKS_ATYP_IPV4);
+                        bytes.extend(host.octets().iter());
+                    }
+                    IpAddr::V6(host) => {
+                        bytes.push(SOCKS_ATYP_IPV6);
+                        bytes.extend(host.octets().iter());
+                    }
+                }
+
+                bytes.extend(dst_addr.port().to_be_bytes().iter())
+            }
+            Address::Domainname { host, port } => {
+                bytes.push(SOCKS_ATYP_DOMAINNAME);
+
+                let host = host.as_bytes();
+                bytes.push(host.len() as u8);
+                bytes.extend(host);
+
+                bytes.extend(port.to_be_bytes().iter());
+            }
+        }
+
+        bytes
+    }
 }
 
 impl From<SocketAddr> for Address {
@@ -60,6 +96,38 @@ impl From<SocketAddr> for Address {
     ///
     fn from(addr: SocketAddr) -> Address {
         Address::Ip(addr)
+    }
+}
+
+impl From<([u8; 4], [u8; 2])> for Address {
+    ///
+    ///
+    ///
+    fn from(addr: ([u8; 4], [u8; 2])) -> Address {
+        let host = IpAddr::from(addr.0);
+        let port = ((addr.1[0] as u16) << 8) | addr.1[1] as u16;
+        Address::Ip(SocketAddr::new(host, port))
+    }
+}
+
+impl From<([u8; 16], [u8; 2])> for Address {
+    ///
+    ///
+    ///
+    fn from(addr: ([u8; 16], [u8; 2])) -> Address {
+        let host = IpAddr::from(addr.0);
+        let port = ((addr.1[0] as u16) << 8) | addr.1[1] as u16;
+        Address::Ip(SocketAddr::new(host, port))
+    }
+}
+
+impl From<(String, [u8; 2])> for Address {
+    ///
+    ///
+    ///
+    fn from(addr: (String, [u8; 2])) -> Address {
+        let port = ((addr.1[0] as u16) << 8) | addr.1[1] as u16;
+        Address::Domainname { host: addr.0, port }
     }
 }
 
@@ -81,5 +149,22 @@ impl Credentials {
         let password = password.into();
 
         Credentials { username, password }
+    }
+
+    ///
+    ///
+    ///
+    pub fn as_socks_bytes(&self) -> Vec<u8> {
+        let mut bytes = vec![];
+
+        // Append username
+        bytes.push(self.username.len() as u8);
+        bytes.extend(self.username.clone());
+
+        // Append password
+        bytes.push(self.password.len() as u8);
+        bytes.extend(self.password.clone());
+
+        bytes
     }
 }
