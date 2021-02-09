@@ -1,4 +1,6 @@
 #[macro_use]
+extern crate anyhow;
+#[macro_use]
 extern crate log;
 
 use std::net::{IpAddr, SocketAddr};
@@ -9,7 +11,7 @@ mod util;
 
 pub use copy::copy_bidirectional as bidirectional_copy;
 pub use socks5::{Socks5Client, Socks5Guard, Socks5Handler};
-pub use util::get_original_dst;
+pub use util::{resolve_addr, get_original_dst};
 
 pub mod constants {
     pub const SOCKS_VER_5: u8 = 0x05u8;
@@ -31,7 +33,7 @@ pub mod constants {
 
 pub enum Address {
     Domainname { host: String, port: u16 },
-    Ip { host: IpAddr, port: u16 },
+    Ip(SocketAddr),
 }
 
 impl Address {
@@ -45,20 +47,19 @@ impl Address {
         let host = host.into();
 
         if let Ok(host) = host.parse::<IpAddr>() {
-            Address::Ip { host, port }
+            Address::Ip(SocketAddr::new(host, port))
         } else {
             Address::Domainname { host, port }
         }
     }
+}
 
+impl From<SocketAddr> for Address {
     ///
     ///
     ///
-    pub fn as_socket_addr(&self) -> SocketAddr {
-        match self.clone() {
-            Address::Ip { host, port } => SocketAddr::new(*host, *port),
-            _ => unimplemented!(),
-        }
+    fn from(addr: SocketAddr) -> Address {
+        Address::Ip(addr)
     }
 }
 
