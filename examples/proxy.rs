@@ -1,6 +1,7 @@
 use anyhow::Result;
 use socksx::{self, Socks5Guard, Socks5Handler};
 use tokio::net::{TcpListener, TcpStream};
+use tokio::time::Instant;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -22,12 +23,13 @@ async fn process(
     guard: Socks5Guard,
     handler: Socks5Handler,
 ) -> Result<()> {
-    dbg!("PROCESS!!");
-
     let mut incoming = incoming;
+    let start_time = Instant::now();
 
     guard.authenticate(&mut incoming).await?;
     handler.handle_request(&mut incoming).await?;
 
+    println!("{}ms", Instant::now().saturating_duration_since(start_time).as_millis());
+    
     Ok(())
 }
