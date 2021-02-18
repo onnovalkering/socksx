@@ -206,7 +206,6 @@ impl Socks5Guard {
         stream.read_exact(&mut request).await?;
 
         let socks_version = request[0];
-        dbg!(socks_version);
 
         if socks_version != SOCKS_VER_5 {
             bail!("Client uses a different SOCKS version: {}.", socks_version);
@@ -214,7 +213,6 @@ impl Socks5Guard {
 
         // Get all authentication methods the client proposes.
         let nmethods = request[1] as usize;
-        dbg!(nmethods);
 
         let mut methods = vec![0; nmethods];
         stream.read_exact(&mut methods).await?;
@@ -226,8 +224,6 @@ impl Socks5Guard {
         } else {
             SOCKS_AUTH_NO_ACCEPTABLE_METHODS
         };
-
-        dbg!(method);
 
         info!("Use authentication method: {}", method);
 
@@ -329,10 +325,8 @@ impl Socks5Handler {
 
         let dst_port = ((dst_port[0] as u16) << 8) | dst_port[1] as u16;
         let dst = format!("{}:{}", dst_addr, dst_port);
-        println!("{}", dst);
 
         let mut out = TcpStream::connect(dst).await?;
-        println!("{:?}", out);
 
         let mut reply = [
             SOCKS_VER_5,
