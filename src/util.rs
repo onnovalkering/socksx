@@ -1,6 +1,6 @@
 use anyhow::Result;
 use std::{net::SocketAddr, os};
-use tokio::net;
+use tokio::net::{self, TcpStream};
 
 ///
 ///
@@ -31,5 +31,21 @@ pub async fn resolve_addr<S: Into<String>>(addr: S) -> Result<SocketAddr> {
     match addresses[..] {
         [first, ..] => Ok(first),
         [] => bail!("Domain name didn't resolve to an IP address."),
+    }
+}
+
+///
+///
+///
+pub async fn try_read_initial_data(stream: &mut TcpStream) -> Result<Option<Vec<u8>>> {
+    let mut initial_data = Vec::with_capacity(2usize.pow(14)); // 16KB is the max
+
+    stream.readable().await?;
+    match stream.try_read_buf(&mut initial_data) {
+        Ok(0) => Ok(None),
+        Ok(_) => Ok(Some(initial_data)),
+        Err(e) => {
+            return Err(e.into());
+        }
     }
 }
