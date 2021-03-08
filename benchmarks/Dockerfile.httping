@@ -18,7 +18,7 @@ COPY ./src ./src
 RUN cargo build --release --example redirector
 
 # Define final image
-FROM ubuntu:20.04
+FROM ubuntu:20.10
 
 RUN apt-get update && apt-get install -y \
     httping \

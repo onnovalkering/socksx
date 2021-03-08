@@ -21,6 +21,7 @@ RUN cargo build --release --example redirector
 FROM ubuntu:20.10
 
 RUN apt-get update && apt-get install -y \
+    iptables \
     wrk \
  && rm -rf /var/lib/apt/lists/*
 
