@@ -16,18 +16,26 @@ async fn main() -> Result<()> {
                 .default_value("5"),
         )
         .arg(
-            Arg::with_name("PROXY")
+            Arg::with_name("PROXY_HOST")
                 .help("The IP or hostname of the proxy")
-                .required(true),
+                .default_value("127.0.0.1")
         )
+        .arg(
+            Arg::with_name("PROXY_PORT")
+                .help("The port of the proxy server")
+                .default_value("1080")
+        )        
         .get_matches();
 
-    let proxy_host = format!("{}:1080", args.value_of("PROXY").unwrap_or("127.0.0.1"));
+    
+    let proxy_host = args.value_of("PROXY_HOST").unwrap();
+    let proxy_port = args.value_of("PROXY_PORT").unwrap();
+    let proxy_addr = format!("{}:{}", proxy_host, proxy_port);
+    
     let listener = TcpListener::bind("127.0.0.1:42000").await?;
-
     match args.value_of("VERSION") {
         Some("5") => {
-            let client = Socks5Client::new(proxy_host, None).await?;
+            let client = Socks5Client::new(proxy_addr, None).await?;
 
             loop {
                 let (stream, _) = listener.accept().await?;
@@ -35,7 +43,7 @@ async fn main() -> Result<()> {
             }
         }
         Some("6") => {
-            let client = Socks6Client::new(proxy_host, None).await?;
+            let client = Socks6Client::new(proxy_addr, None).await?;
 
             loop {
                 let (stream, _) = listener.accept().await?;
