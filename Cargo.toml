@@ -1,8 +1,10 @@
 [package]
 name = "socksx"
 version = "0.1.0"
+description = "A SOCKS toolkit for Rust"
 authors = ["Onno Valkering"]
 edition = "2018"
+license = "MIT"
 
 [dependencies]
 anyhow = "1"
