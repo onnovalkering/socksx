@@ -67,7 +67,7 @@ async fn redirect_v5(
     let dst_addr = socksx::get_original_dst(&incoming)?;
     let (mut outgoing, _) = client.connect(dst_addr).await?;
 
-    socksx::bidirectional_copy(&mut incoming, &mut outgoing).await?;
+    socksx::copy_bidirectional(&mut incoming, &mut outgoing).await?;
 
     Ok(())
 }
@@ -85,7 +85,7 @@ async fn redirect_v6(
     let initial_data = socksx::try_read_initial_data(&mut incoming).await?;
     let (mut outgoing, _) = client.connect(dst_addr, initial_data, None).await?;
 
-    socksx::bidirectional_copy(&mut incoming, &mut outgoing).await?;
+    socksx::copy_bidirectional(&mut incoming, &mut outgoing).await?;
 
     Ok(())
 }

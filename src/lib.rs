@@ -5,15 +5,16 @@ extern crate log;
 
 use std::net::{IpAddr, SocketAddr};
 
-mod copy;
 mod socks5;
 mod socks6;
 mod util;
 
-pub use copy::copy_bidirectional as bidirectional_copy;
 pub use socks5::{Socks5Client, Socks5Guard, Socks5Handler};
 pub use socks6::{Socks6Client, Socks6Handler};
 pub use util::{get_original_dst, resolve_addr, try_read_initial_data};
+
+// Re-Export
+pub use tokio::io::copy_bidirectional;
 
 pub mod constants {
     pub const SOCKS_VER_5: u8 = 0x05u8;

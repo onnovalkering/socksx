@@ -270,6 +270,7 @@ impl Socks6Handler {
         stream.read_exact(&mut reply_options).await?;
 
         let initial_data_len = ((reply_options[4] as u16) << 8) | reply_options[5] as u16;
+
         let mut initial_data = vec![0; initial_data_len as usize];
         stream.read_exact(&mut initial_data).await?;
 
@@ -279,6 +280,7 @@ impl Socks6Handler {
 
         // Open socket and send initial data
         let mut out = TcpStream::connect(dst).await?;
+
         out.write(&initial_data).await?;
 
         let mut reply = [
@@ -299,7 +301,7 @@ impl Socks6Handler {
         stream.write(&mut reply).await?;
         stream.flush().await?;
 
-        crate::bidirectional_copy(stream, &mut out).await?;
+        tokio::io::copy_bidirectional(stream, &mut out).await?;
 
         Ok(())
     }

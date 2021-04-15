@@ -344,7 +344,7 @@ impl Socks5Handler {
         stream.write(&mut reply).await?;
         stream.flush().await?;
 
-        crate::bidirectional_copy(stream, &mut out).await?;
+        tokio::io::copy_bidirectional(stream, &mut out).await?;
 
         Ok(())
     }
