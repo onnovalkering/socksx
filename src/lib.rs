@@ -2,11 +2,13 @@
 extern crate anyhow;
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate num_derive;
 
 use std::net::{IpAddr, SocketAddr};
 
 mod socks5;
-mod socks6;
+pub mod socks6;
 mod util;
 
 pub use socks5::{Socks5Client, Socks5Guard, Socks5Handler};
@@ -47,10 +49,19 @@ pub mod constants {
     pub const SOCKS_REP_SUCCEEDED: u8 = 0x00u8;
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Address {
     Domainname { host: String, port: u16 },
     Ip(SocketAddr),
+}
+
+impl ToString for Address {
+    fn to_string(&self) -> String {
+        match self {
+            Address::Domainname { host, port } => format!("{}{}", host, port),
+            Address::Ip(socket_addr) => socket_addr.to_string(),
+        }
+    }
 }
 
 impl Address {
