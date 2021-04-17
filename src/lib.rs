@@ -7,6 +7,7 @@ extern crate num_derive;
 
 use std::net::{IpAddr, SocketAddr};
 
+pub mod options;
 mod socks5;
 pub mod socks6;
 mod util;

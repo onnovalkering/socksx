@@ -18,20 +18,19 @@ async fn main() -> Result<()> {
         .arg(
             Arg::with_name("PROXY_HOST")
                 .help("The IP or hostname of the proxy")
-                .default_value("127.0.0.1")
+                .default_value("127.0.0.1"),
         )
         .arg(
             Arg::with_name("PROXY_PORT")
                 .help("The port of the proxy server")
-                .default_value("1080")
-        )        
+                .default_value("1080"),
+        )
         .get_matches();
 
-    
     let proxy_host = args.value_of("PROXY_HOST").unwrap();
     let proxy_port = args.value_of("PROXY_PORT").unwrap();
     let proxy_addr = format!("{}:{}", proxy_host, proxy_port);
-    
+
     let listener = TcpListener::bind("127.0.0.1:42000").await?;
     match args.value_of("VERSION") {
         Some("5") => {
