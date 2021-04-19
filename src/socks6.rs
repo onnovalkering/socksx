@@ -418,7 +418,6 @@ where
     while options_bytes_read < options_length {
         let mut buffer = [0; 4];
         stream.read_exact(&mut buffer).await?;
-        options_bytes_read = options_bytes_read + 4;
 
         let [kind_0, kind_1, length_0, length_1] = buffer;
         let kind = ((kind_0 as u16) << 8) | kind_1 as u16;
@@ -427,7 +426,6 @@ where
         // Read remaining bytes of this option.
         let mut options_data = vec![0; (length - 4) as usize];
         stream.read_exact(&mut options_data).await?;
-        options_bytes_read = options_bytes_read + length;
 
         let option = match kind {
             0x0002 => AuthMethodAdvertisementOption::from_socks_bytes(options_data)?,
@@ -437,6 +435,7 @@ where
         };
 
         options.push(option);
+        options_bytes_read = options_bytes_read + length;
     }
 
     Ok(options)
