@@ -13,30 +13,33 @@ async fn main() -> Result<()> {
                 .short("s")
                 .long("socks")
                 .help("The SOCKS version to use")
+                .possible_values(&["5", "6"])
                 .default_value("5"),
         )
         .get_matches();
 
     let listener = TcpListener::bind("0.0.0.0:1080").await?;
-
     match args.value_of("VERSION") {
         Some("5") => {
-            let guard = Socks5Guard::new(None);
-            let handler = Socks5Handler::new();
+            let guard = Arc::new(Socks5Guard::new(None));
+            let handler = Arc::new(Socks5Handler::new());
 
             loop {
-                let (socket, _) = listener.accept().await?;
-                tokio::spawn(process_v5(socket, guard.clone(), handler.clone()));
+                let (incoming, _) = listener.accept().await?;
+                let guard = Arc::clone(&guard);
+                let handler = Arc::clone(&handler);
+
+                tokio::spawn(process_v5(incoming, guard, handler));
             }
         }
         Some("6") => {
             let handler = Arc::new(Socks6Handler::new());
 
             loop {
-                let (mut incoming, _) = listener.accept().await?;
+                let (incoming, _) = listener.accept().await?;
                 let handler = Arc::clone(&handler);
 
-                tokio::spawn(async move { handler.handle_request(&mut incoming).await });
+                tokio::spawn(process_v6(incoming, handler));
             }
         }
         Some(version) => panic!("Unsupported version: {}", version),
@@ -49,13 +52,30 @@ async fn main() -> Result<()> {
 ///
 async fn process_v5(
     incoming: TcpStream,
-    guard: Socks5Guard,
-    handler: Socks5Handler,
+    guard: Arc<Socks5Guard>,
+    handler: Arc<Socks5Handler>,
 ) -> Result<()> {
     let mut incoming = incoming;
     let start_time = Instant::now();
 
     guard.authenticate(&mut incoming).await?;
+    handler.handle_request(&mut incoming).await?;
+
+    println!("{}ms", Instant::now().saturating_duration_since(start_time).as_millis());
+
+    Ok(())
+}
+
+///
+///
+///
+async fn process_v6(
+    incoming: TcpStream,
+    handler: Arc<Socks6Handler>,
+) -> Result<()> {
+    let mut incoming = incoming;
+    let start_time = Instant::now();
+
     handler.handle_request(&mut incoming).await?;
 
     println!("{}ms", Instant::now().saturating_duration_since(start_time).as_millis());
