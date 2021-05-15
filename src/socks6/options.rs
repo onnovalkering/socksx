@@ -62,7 +62,7 @@ impl AuthMethodAdvertisementOption {
                 let m = **m;
                 // Ingore "No Authentication Required" (implied) and padding bytes.
                 m > 0 && m < 3
-            }) 
+            })
             .map(|m| AuthMethod::from_u8(*m).unwrap())
             .collect();
 
@@ -92,7 +92,7 @@ impl AuthMethodSelectionOption {
 
     pub fn from_socks_bytes(bytes: Vec<u8>) -> Result<SocksOption> {
         ensure!(bytes.len() == 4, "Expected exactly four bytes, got: {}", bytes.len());
-        
+
         let method = bytes[0];
         if let Some(method) = AuthMethod::from_u8(method) {
             Ok(Self::new(method))
@@ -127,7 +127,7 @@ impl MetadataOption {
         let key = ((bytes[0] as u16) << 8) | bytes[1] as u16;
         let length = ((bytes[2] as u16) << 8) | bytes[3] as u16;
 
-        let value = bytes[4..(length as usize)+4].to_vec();
+        let value = bytes[4..(length as usize) + 4].to_vec();
         if let Ok(value) = String::from_utf8(value) {
             Ok(Self::new(key, value))
         } else {

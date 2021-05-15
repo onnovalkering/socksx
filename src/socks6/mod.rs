@@ -1,4 +1,4 @@
-use crate::options::{
+use crate::socks6::options::{
     AuthMethodAdvertisementOption, AuthMethodSelectionOption, MetadataOption, SocksOption, UnrecognizedOption,
 };
 use crate::{constants::*, Address};
@@ -7,6 +7,7 @@ use num_traits::FromPrimitive;
 use std::{collections::HashMap, net::IpAddr};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
+mod options;
 mod s6_client;
 mod s6_handler;
 
@@ -26,6 +27,7 @@ pub enum AuthMethod {
 pub struct Socks6Request {
     pub command: SocksCommand,
     pub destination: Address,
+    pub initial_data_length: u16,
     pub options: Vec<SocksOption>,
     pub metadata: HashMap<u16, String>,
 }
@@ -37,12 +39,14 @@ impl Socks6Request {
     pub fn new(
         command: u8,
         destination: Address,
+        initial_data_length: u16,
         options: Vec<SocksOption>,
         metadata: HashMap<u16, String>,
     ) -> Self {
         Socks6Request {
             command: SocksCommand::from_u8(command).unwrap(),
             destination,
+            initial_data_length,
             options,
             metadata,
         }
@@ -82,14 +86,32 @@ where
 
     let options = read_options(stream).await?;
 
+    let mut initial_data_length = 0;
     let mut metadata = HashMap::new();
     for option in &options {
+        match option {
+            SocksOption::AuthMethodAdvertisement(advertisement) => {
+                // Make note of initial data length for convience.
+                initial_data_length = advertisement.initial_data_length;
+            }
+            SocksOption::Metadata(key_value) => {
+                metadata.insert(key_value.key, key_value.value.clone());
+            }
+            _ => {}
+        }
+
         if let SocksOption::Metadata(key_value) = option {
             metadata.insert(key_value.key, key_value.value.clone());
         }
     }
 
-    Ok(Socks6Request::new(command, destination, options, metadata))
+    Ok(Socks6Request::new(
+        command,
+        destination,
+        initial_data_length,
+        options,
+        metadata,
+    ))
 }
 
 ///

@@ -1,4 +1,4 @@
-use crate::options::{AuthMethodAdvertisementOption, SocksOption};
+use crate::socks6::options::{AuthMethodAdvertisementOption, SocksOption};
 use crate::{constants::*, Address, Credentials};
 use anyhow::{ensure, Result};
 use std::net::SocketAddr;
