@@ -184,7 +184,7 @@ impl Credentials {
     ///
     ///
     pub fn as_socks_bytes(&self) -> Vec<u8> {
-        let mut bytes = vec![];
+        let mut bytes = Vec::new();
 
         // Append username
         bytes.push(self.username.len() as u8);

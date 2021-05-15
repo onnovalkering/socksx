@@ -274,6 +274,12 @@ impl Socks5Guard {
 #[derive(Clone)]
 pub struct Socks5Handler {}
 
+impl Default for Socks5Handler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Socks5Handler {
     ///
     ///
@@ -328,7 +334,7 @@ impl Socks5Handler {
 
         let mut out = TcpStream::connect(dst).await?;
 
-        let mut reply = [
+        let reply = [
             SOCKS_VER_5,
             SOCKS_REP_SUCCEEDED,
             SOCKS_RSV,
@@ -341,7 +347,7 @@ impl Socks5Handler {
             0x00,
         ];
 
-        stream.write(&mut reply).await?;
+        stream.write(&reply).await?;
         stream.flush().await?;
 
         tokio::io::copy_bidirectional(stream, &mut out).await?;

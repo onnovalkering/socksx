@@ -12,7 +12,7 @@ pub fn get_original_dst<S: os::unix::io::AsRawFd>(socket: &S) -> Result<SocketAd
     let orignal_dst = socket::getsockopt(socket.as_raw_fd(), sockopt::OriginalDst)?;
     let orignal_dst = InetAddr::V4(orignal_dst).to_std();
 
-    Ok(orignal_dst.into())
+    Ok(orignal_dst)
 }
 
 ///

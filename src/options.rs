@@ -5,7 +5,7 @@ use num_traits::FromPrimitive;
 #[derive(Clone, Debug, FromPrimitive)]
 pub enum AuthMethod {
     NoAuthentication = 0x00,
-    GSSAPI = 0x01,
+    Gssapi = 0x01,
     UsernamePassword = 0x02,
     NoAcceptableMethods = 0xFF,
 }
@@ -23,10 +23,10 @@ impl SocksOption {
         use SocksOption::*;
 
         match self {
-            AuthMethodAdvertisement(option) => option.clone().to_socks_bytes(),
-            AuthMethodSelection(option) => option.clone().to_socks_bytes(),
-            Metadata(option) => option.clone().to_socks_bytes(),
-            Unrecognized(option) => option.clone().to_socks_bytes(),
+            AuthMethodAdvertisement(option) => option.clone().into_socks_bytes(),
+            AuthMethodSelection(option) => option.clone().into_socks_bytes(),
+            Metadata(option) => option.clone().into_socks_bytes(),
+            Unrecognized(option) => option.clone().into_socks_bytes(),
         }
     }
 }
@@ -72,7 +72,7 @@ impl AuthMethodAdvertisementOption {
     ///
     ///
     ///
-    pub fn to_socks_bytes(self) -> Vec<u8> {
+    pub fn into_socks_bytes(self) -> Vec<u8> {
         let mut data = self.initial_data_length.to_be_bytes().to_vec();
         data.extend(self.methods.iter().cloned().map(|m| m as u8));
 
@@ -101,8 +101,8 @@ impl AuthMethodSelectionOption {
         }
     }
 
-    pub fn to_socks_bytes(self) -> Vec<u8> {
-        let data = vec![self.method.clone() as u8];
+    pub fn into_socks_bytes(self) -> Vec<u8> {
+        let data = vec![self.method as u8];
 
         combine_and_pad(0x03, data)
     }
@@ -135,7 +135,7 @@ impl MetadataOption {
         }
     }
 
-    pub fn to_socks_bytes(self) -> Vec<u8> {
+    pub fn into_socks_bytes(self) -> Vec<u8> {
         let mut data = self.key.to_be_bytes().to_vec();
         data.extend((self.value.len() as u16).to_be_bytes().iter());
         data.extend(self.value.as_bytes().iter());
@@ -159,7 +159,7 @@ impl UnrecognizedOption {
         SocksOption::Unrecognized(Self { kind, data })
     }
 
-    pub fn to_socks_bytes(self) -> Vec<u8> {
+    pub fn into_socks_bytes(self) -> Vec<u8> {
         combine_and_pad(self.kind, self.data)
     }
 }
