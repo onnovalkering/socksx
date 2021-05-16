@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::{App, Arg};
-use socksx::{self, Socks5Handler, Socks6Handler};
-use std::sync::Arc;
+use socksx::{self, ProxyAddress, Socks5Handler, Socks6Handler};
+use std::{convert::TryInto, sync::Arc};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::time::Instant;
 
@@ -12,16 +12,36 @@ async fn main() -> Result<()> {
             Arg::with_name("VERSION")
                 .short("s")
                 .long("socks")
-                .help("The SOCKS version to use")
+                .help("SOCKS version to use")
                 .possible_values(&["5", "6"])
                 .default_value("5"),
         )
+        .arg(
+            Arg::with_name("PORT")
+                .short("p")
+                .long("port")
+                .help("Port to use")
+                .default_value("1080"),
+        )
+        .arg(
+            Arg::with_name("CHAIN")
+                .short("c")
+                .long("chain")
+                .help("Entry in the proxy chain, the order is preserved")
+                .multiple(true)
+                .takes_value(true),
+        )
         .get_matches();
 
-    let listener = TcpListener::bind("0.0.0.0:1080").await?;
+    let port = args.value_of("PORT").unwrap();
+    let chain: Option<Vec<ProxyAddress>> = args
+        .values_of("CHAIN")
+        .map(|c| c.into_iter().map(|c| c.to_string().try_into().unwrap()).collect());
+
+    let listener = TcpListener::bind(format!("0.0.0.0:{}", port)).await?;
     match args.value_of("VERSION") {
         Some("5") => {
-            let handler = Arc::new(Socks5Handler::new(None));
+            let handler = Arc::new(Socks5Handler::new(chain));
 
             loop {
                 let (incoming, _) = listener.accept().await?;
@@ -31,7 +51,7 @@ async fn main() -> Result<()> {
             }
         }
         Some("6") => {
-            let handler = Arc::new(Socks6Handler::new(None));
+            let handler = Arc::new(Socks6Handler::new(chain));
 
             loop {
                 let (incoming, _) = listener.accept().await?;

@@ -6,12 +6,13 @@ extern crate log;
 extern crate num_derive;
 
 pub mod address;
+pub mod chain;
 pub mod credentials;
 pub mod socks5;
 pub mod socks6;
 pub mod util;
 
-pub use address::Address;
+pub use address::{Address, ProxyAddress};
 pub use credentials::Credentials;
 pub use socks5::{Socks5Client, Socks5Handler};
 pub use socks6::{Socks6Client, Socks6Handler};

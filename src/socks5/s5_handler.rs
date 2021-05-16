@@ -1,5 +1,7 @@
+use crate::address::{self, ProxyAddress};
+use crate::chain;
 use crate::socks5::{self, Socks5Reply};
-use crate::{address, constants::*, Credentials};
+use crate::{constants::*, Credentials};
 use anyhow::Result;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
@@ -7,11 +9,12 @@ use tokio::net::TcpStream;
 #[derive(Clone)]
 pub struct Socks5Handler {
     credentials: Option<Credentials>,
+    chain: Vec<ProxyAddress>,
 }
 
 impl Default for Socks5Handler {
     fn default() -> Self {
-        Self::new()
+        Self::new(None)
     }
 }
 
@@ -19,8 +22,13 @@ impl Socks5Handler {
     ///
     ///
     ///
-    pub fn new() -> Self {
-        Socks5Handler { credentials: None }
+    pub fn new(chain: Option<Vec<ProxyAddress>>) -> Self {
+        let chain = chain.unwrap_or_default();
+
+        Socks5Handler {
+            credentials: None,
+            chain,
+        }
     }
 
     pub async fn handle_request(
@@ -101,7 +109,11 @@ impl Socks5Handler {
         }
 
         let destination = address::read_address(source).await?;
-        let mut destination = TcpStream::connect(destination.to_string()).await?;
+        let mut destination = if !self.chain.is_empty() {
+            chain::setup(&self.chain, destination).await?
+        } else {
+            TcpStream::connect(destination.to_string()).await?
+        };
 
         // Notify source that the connection has been set up.
         socks5::write_reply(source, Socks5Reply::Success).await?;

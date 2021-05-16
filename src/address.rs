@@ -1,52 +1,67 @@
-use crate::constants::*;
+use crate::{constants::*, Credentials};
 use anyhow::Result;
 use std::convert::TryFrom;
 use std::net::{IpAddr, SocketAddr};
 use tokio::io::{AsyncRead, AsyncReadExt};
+use url::Url;
 
-///
-///
-///
-pub async fn read_address<S>(stream: &mut S) -> Result<Address>
-where
-    S: AsyncRead + Unpin,
-{
-    // Read address type.
-    let mut address_type = [0; 1];
-    stream.read_exact(&mut address_type).await?;
+#[derive(Clone, Debug)]
+pub struct ProxyAddress {
+    pub socks_version: u8,
+    pub host: String,
+    pub port: u16,
+    pub credentials: Option<Credentials>,
+}
 
-    let dst_addr = match address_type[0] {
-        SOCKS_ATYP_IPV4 => {
-            let mut dst_addr = [0; 4];
-            stream.read_exact(&mut dst_addr).await?;
-
-            IpAddr::from(dst_addr).to_string()
+impl ProxyAddress {
+    pub fn new(
+        socks_version: u8,
+        host: String,
+        port: u16,
+        credentials: Option<Credentials>,
+    ) -> Self {
+        Self {
+            socks_version,
+            host,
+            port,
+            credentials,
         }
-        SOCKS_ATYP_IPV6 => {
-            let mut dst_addr = [0; 16];
-            stream.read_exact(&mut dst_addr).await?;
+    }
+}
 
-            IpAddr::from(dst_addr).to_string()
-        }
-        SOCKS_ATYP_DOMAINNAME => {
-            let mut length = [0; 1];
-            stream.read_exact(&mut length).await?;
+impl TryFrom<String> for ProxyAddress {
+    type Error = anyhow::Error;
 
-            let mut dst_addr = vec![0; length[0] as usize];
-            stream.read_exact(&mut dst_addr).await?;
+    fn try_from(proxy_addr: String) -> Result<Self> {
+        let proxy_addr = Url::parse(&proxy_addr)?;
 
-            String::from_utf8_lossy(&dst_addr[..]).to_string()
-        }
-        _ => unreachable!(),
-    };
+        ensure!(
+            proxy_addr.host().is_some(),
+            "Missing explicit IP/host in proxy address."
+        );
+        ensure!(proxy_addr.port().is_some(), "Missing explicit port in proxy address.");
 
-    // Read destination port.
-    let mut dst_port = [0; 2];
-    stream.read_exact(&mut dst_port).await?;
+        let socks_version = match proxy_addr.scheme() {
+            "socks5" => SOCKS_VER_5,
+            "socks6" => SOCKS_VER_6,
+            scheme => bail!("Unrecognized SOCKS scheme: {}", scheme),
+        };
 
-    let dst_port = ((dst_port[0] as u16) << 8) | dst_port[1] as u16;
+        let username = proxy_addr.username();
+        let credentials = if username.is_empty() {
+            None
+        } else {
+            let password = proxy_addr.password().unwrap_or_default();
+            Some(Credentials::new(username, password))
+        };
 
-    Ok(Address::new(dst_addr, dst_port))
+        Ok(Self::new(
+            socks_version,
+            proxy_addr.host().map(|h| h.to_string()).unwrap(),
+            proxy_addr.port().unwrap(),
+            credentials,
+        ))
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -129,40 +144,47 @@ impl TryFrom<String> for Address {
     }
 }
 
-impl From<SocketAddr> for Address {
-    fn from(addr: SocketAddr) -> Self {
-        Address::Ip(addr)
-    }
-}
+///
+///
+///
+pub async fn read_address<S>(stream: &mut S) -> Result<Address>
+where
+    S: AsyncRead + Unpin,
+{
+    // Read address type.
+    let mut address_type = [0; 1];
+    stream.read_exact(&mut address_type).await?;
 
-impl From<([u8; 4], [u8; 2])> for Address {
-    ///
-    ///
-    ///
-    fn from(addr: ([u8; 4], [u8; 2])) -> Address {
-        let host = IpAddr::from(addr.0);
-        let port = ((addr.1[0] as u16) << 8) | addr.1[1] as u16;
-        Address::Ip(SocketAddr::new(host, port))
-    }
-}
+    let dst_addr = match address_type[0] {
+        SOCKS_ATYP_IPV4 => {
+            let mut dst_addr = [0; 4];
+            stream.read_exact(&mut dst_addr).await?;
 
-impl From<([u8; 16], [u8; 2])> for Address {
-    ///
-    ///
-    ///
-    fn from(addr: ([u8; 16], [u8; 2])) -> Address {
-        let host = IpAddr::from(addr.0);
-        let port = ((addr.1[0] as u16) << 8) | addr.1[1] as u16;
-        Address::Ip(SocketAddr::new(host, port))
-    }
-}
+            IpAddr::from(dst_addr).to_string()
+        }
+        SOCKS_ATYP_IPV6 => {
+            let mut dst_addr = [0; 16];
+            stream.read_exact(&mut dst_addr).await?;
 
-impl From<(String, [u8; 2])> for Address {
-    ///
-    ///
-    ///
-    fn from(addr: (String, [u8; 2])) -> Address {
-        let port = ((addr.1[0] as u16) << 8) | addr.1[1] as u16;
-        Address::Domainname { host: addr.0, port }
-    }
+            IpAddr::from(dst_addr).to_string()
+        }
+        SOCKS_ATYP_DOMAINNAME => {
+            let mut length = [0; 1];
+            stream.read_exact(&mut length).await?;
+
+            let mut dst_addr = vec![0; length[0] as usize];
+            stream.read_exact(&mut dst_addr).await?;
+
+            String::from_utf8_lossy(&dst_addr[..]).to_string()
+        }
+        _ => unreachable!(),
+    };
+
+    // Read destination port.
+    let mut dst_port = [0; 2];
+    stream.read_exact(&mut dst_port).await?;
+
+    let dst_port = ((dst_port[0] as u16) << 8) | dst_port[1] as u16;
+
+    Ok(Address::new(dst_addr, dst_port))
 }

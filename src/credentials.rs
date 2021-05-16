@@ -1,4 +1,4 @@
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Credentials {
     pub username: Vec<u8>,
     pub password: Vec<u8>,

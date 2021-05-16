@@ -227,7 +227,7 @@ where
 
 #[repr(u8)]
 #[derive(Clone, Debug, FromPrimitive, PartialEq)]
-pub enum SocksReply {
+pub enum Socks6Reply {
     Success = 0x00,
     GeneralFailure = 0x01,
     ConnectionNotAllowed = 0x02,
@@ -245,7 +245,7 @@ pub enum SocksReply {
 ///
 pub async fn write_reply<S>(
     stream: &mut S,
-    reply: SocksReply,
+    reply: Socks6Reply,
 ) -> Result<()>
 where
     S: AsyncWrite + Unpin,
