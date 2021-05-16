@@ -1,4 +1,4 @@
-use crate::address::{self, ProxyAddress};
+use crate::addresses::{self, ProxyAddress};
 use crate::chain;
 use crate::socks5::{self, Socks5Reply};
 use crate::{constants::*, Credentials};
@@ -108,7 +108,7 @@ impl Socks5Handler {
             unimplemented!();
         }
 
-        let destination = address::read_address(source).await?;
+        let destination = addresses::read_address(source).await?;
         let mut destination = if !self.chain.is_empty() {
             chain::setup(&self.chain, destination).await?
         } else {

@@ -7,27 +7,29 @@ use tokio::time::Instant;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let args = App::new("Server")
+    let args = App::new("socksx")
+        .version("0.2.0")
+        .about("https://github.com/onnovalkering/socksx")
         .arg(
-            Arg::with_name("VERSION")
-                .short("s")
+            Arg::new("VERSION")
+                .short('s')
                 .long("socks")
-                .help("SOCKS version to use")
+                .about("SOCKS version to use")
                 .possible_values(&["5", "6"])
-                .default_value("5"),
+                .default_value("6"),
         )
         .arg(
-            Arg::with_name("PORT")
-                .short("p")
+            Arg::new("PORT")
+                .short('p')
                 .long("port")
-                .help("Port to use")
+                .about("Port to use")
                 .default_value("1080"),
         )
         .arg(
-            Arg::with_name("CHAIN")
-                .short("c")
+            Arg::new("CHAIN")
+                .short('c')
                 .long("chain")
-                .help("Entry in the proxy chain, the order is preserved")
+                .about("Entry in the proxy chain, the order is preserved")
                 .multiple(true)
                 .takes_value(true),
         )

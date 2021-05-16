@@ -9,14 +9,14 @@ license = "MIT"
 [dependencies]
 anyhow = "1"
 bytes = "1"
+clap = "3.0.0-beta.2"
+dotenv = "0.15"
+env_logger = "0.8"
 libc = "0.2"
 log = "0.4"
-nix = "0.20"
+nix = "0.21"
 num-derive = "0.3"
 num-traits = "0.2"
 thiserror = "1"
-tokio = { version = "^1.5", features = ["full"] }
+tokio = { version = "1", features = ["full"] }
 url = "2.2"
-
-[dev-dependencies]
-clap = "2"

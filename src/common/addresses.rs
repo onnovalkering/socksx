@@ -1,6 +1,6 @@
 use crate::{constants::*, Credentials};
 use anyhow::Result;
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 use std::net::{IpAddr, SocketAddr};
 use tokio::io::{AsyncRead, AsyncReadExt};
 use url::Url;
@@ -129,6 +129,14 @@ impl ToString for Address {
             Address::Domainname { host, port } => format!("{}:{}", host, port),
             Address::Ip(socket_addr) => socket_addr.to_string(),
         }
+    }
+}
+
+impl TryFrom<SocketAddr> for Address {
+    type Error = anyhow::Error;
+
+    fn try_from(addr: SocketAddr) -> Result<Self, Self::Error> {
+        addr.to_string().try_into()
     }
 }
 

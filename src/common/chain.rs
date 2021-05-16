@@ -1,4 +1,4 @@
-use crate::address::{Address, ProxyAddress};
+use crate::addresses::{Address, ProxyAddress};
 use crate::constants::*;
 use crate::{Socks5Client, Socks6Client};
 use anyhow::Result;

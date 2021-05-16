@@ -1,4 +1,4 @@
-use crate::address::{self, Address};
+use crate::addresses::{self, Address};
 use crate::constants::*;
 use anyhow::Result;
 use num_traits::FromPrimitive;
@@ -109,7 +109,7 @@ where
         reply_code
     );
 
-    let binding = address::read_address(stream).await?;
+    let binding = addresses::read_address(stream).await?;
 
     Ok(binding)
 }

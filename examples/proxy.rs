@@ -7,12 +7,12 @@ use tokio::time::Instant;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let args = App::new("Server")
+    let args = App::new("Proxy")
         .arg(
-            Arg::with_name("VERSION")
-                .short("s")
+            Arg::new("VERSION")
+                .short('s')
                 .long("socks")
-                .help("The SOCKS version to use")
+                .about("The SOCKS version to use")
                 .possible_values(&["5", "6"])
                 .default_value("5"),
         )

@@ -1,4 +1,4 @@
-use crate::address::ProxyAddress;
+use crate::addresses::ProxyAddress;
 use crate::chain;
 use crate::socks6::{self, Socks6Reply};
 use anyhow::Result;

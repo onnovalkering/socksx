@@ -7,31 +7,31 @@ use tokio::io::AsyncWriteExt;
 async fn main() -> Result<()> {
     let args = App::new("Client")
         .arg(
-            Arg::with_name("VERSION")
-                .short("s")
+            Arg::new("VERSION")
+                .short('s')
                 .long("socks")
-                .help("The SOCKS version to use")
+                .about("The SOCKS version to use")
                 .possible_values(&["5", "6"])
                 .default_value("5"),
         )
         .arg(
-            Arg::with_name("PROXY_HOST")
-                .help("The IP/hostname of the proxy")
+            Arg::new("PROXY_HOST")
+                .about("The IP/hostname of the proxy")
                 .default_value("127.0.0.1"),
         )
         .arg(
-            Arg::with_name("PROXY_PORT")
-                .help("The port of the proxy server")
+            Arg::new("PROXY_PORT")
+                .about("The port of the proxy server")
                 .default_value("1080"),
         )
         .arg(
-            Arg::with_name("DEST_HOST")
-                .help("The IP/hostname of the destination")
+            Arg::new("DEST_HOST")
+                .about("The IP/hostname of the destination")
                 .default_value("127.0.0.1"),
         )
         .arg(
-            Arg::with_name("DEST_PORT")
-                .help("The port of the destination server")
+            Arg::new("DEST_PORT")
+                .about("The port of the destination server")
                 .default_value("12345"),
         )
         .get_matches();

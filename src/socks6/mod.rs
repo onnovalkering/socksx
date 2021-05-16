@@ -1,4 +1,4 @@
-use crate::address::{self, Address};
+use crate::addresses::{self, Address};
 use crate::constants::*;
 use crate::socks6::options::{
     AuthMethodAdvertisementOption, AuthMethodSelectionOption, MetadataOption, SocksOption, UnrecognizedOption,
@@ -8,7 +8,7 @@ use num_traits::FromPrimitive;
 use std::collections::HashMap;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
-mod options;
+pub mod options;
 mod s6_client;
 mod s6_handler;
 
@@ -97,7 +97,7 @@ where
     ensure!(version == SOCKS_VER_6, "Version mismatch!");
     ensure!(command == SOCKS_CMD_CONNECT, "Only COMMAND is supported!");
 
-    let destination = address::read_address(stream).await?;
+    let destination = addresses::read_address(stream).await?;
 
     let mut padding = [0; 1];
     stream.read_exact(&mut padding).await?;
@@ -287,7 +287,7 @@ where
         reply_code
     );
 
-    let binding = address::read_address(stream).await?;
+    let binding = addresses::read_address(stream).await?;
     let options = read_options(stream).await?;
 
     Ok((binding, options))
