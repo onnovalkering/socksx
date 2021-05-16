@@ -1,6 +1,6 @@
 use crate::{constants::*, Address, Credentials};
 use anyhow::{bail, ensure, Result};
-use std::net::{IpAddr, SocketAddr};
+use std::{convert::TryInto, net::{IpAddr, SocketAddr}};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
@@ -31,15 +31,18 @@ impl Socks5Client {
     /// ...
     ///
     /// [rfc1928] https://tools.ietf.org/html/rfc1928
-    pub async fn connect<A: Into<Address>>(
+    pub async fn connect<A>(
         &self,
         dst_addr: A,
-    ) -> Result<(TcpStream, Address)> {
+    ) -> Result<(TcpStream, Address)> 
+        where A: TryInto<Address, Error = anyhow::Error>
+    {
         if let Some(Credentials { username, password }) = &self.credentials {
             ensure!(username.len() > 255, "Username can be no longer than 255 bytes.");
             ensure!(password.len() > 255, "Password can be no longer than 255 bytes.");
         }
 
+        let dst_addr: Address = dst_addr.try_into()?;
         let mut stream = TcpStream::connect(&self.proxy_addr).await?;
 
         // Enter authentication negotiation.
@@ -54,7 +57,7 @@ impl Socks5Client {
 
         // Send SOCKS request information.
         let mut request: Vec<u8> = vec![SOCKS_VER_5, SOCKS_CMD_CONNECT, SOCKS_RSV];
-        request.extend(dst_addr.into().as_socks_bytes());
+        request.extend(dst_addr.as_socks_bytes());
 
         stream.write(&request).await?;
 

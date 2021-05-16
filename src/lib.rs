@@ -5,7 +5,8 @@ extern crate log;
 #[macro_use]
 extern crate num_derive;
 
-use std::net::{IpAddr, SocketAddr};
+use anyhow::Result;
+use std::{convert::TryFrom, net::{IpAddr, SocketAddr}};
 
 pub mod socks5;
 pub mod socks6;
@@ -53,15 +54,6 @@ pub mod constants {
 pub enum Address {
     Domainname { host: String, port: u16 },
     Ip(SocketAddr),
-}
-
-impl ToString for Address {
-    fn to_string(&self) -> String {
-        match self {
-            Address::Domainname { host, port } => format!("{}{}", host, port),
-            Address::Ip(socket_addr) => socket_addr.to_string(),
-        }
-    }
 }
 
 impl Address {
@@ -118,11 +110,29 @@ impl Address {
     }
 }
 
+impl ToString for Address {
+    fn to_string(&self) -> String {
+        match self {
+            Address::Domainname { host, port } => format!("{}:{}", host, port),
+            Address::Ip(socket_addr) => socket_addr.to_string(),
+        }
+    }
+}
+
+impl TryFrom<String> for Address {
+    type Error = anyhow::Error;
+
+    fn try_from(addr: String) -> Result<Self> {
+        if let Some((host, port)) = addr.split_once(':') {
+            Ok(Address::new(host, port.parse()?))
+        } else {
+            bail!("Address doesn't seperate host and port by ':'.")
+        }
+    }
+}
+
 impl From<SocketAddr> for Address {
-    ///
-    ///
-    ///
-    fn from(addr: SocketAddr) -> Address {
+    fn from(addr: SocketAddr) -> Self {
         Address::Ip(addr)
     }
 }
@@ -183,10 +193,8 @@ impl Credentials {
     ///
     ///
     pub fn as_socks_bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
-
         // Append username
-        bytes.push(self.username.len() as u8);
+        let mut bytes = vec![self.username.len() as u8];
         bytes.extend(self.username.clone());
 
         // Append password
