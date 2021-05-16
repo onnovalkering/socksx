@@ -41,15 +41,32 @@ impl Socks6Request {
         destination: Address,
         initial_data_length: u16,
         options: Vec<SocksOption>,
-        metadata: HashMap<u16, String>,
+        metadata: Option<HashMap<u16, String>>,
     ) -> Self {
         Socks6Request {
             command: SocksCommand::from_u8(command).unwrap(),
             destination,
             initial_data_length,
             options,
-            metadata,
+            metadata: metadata.unwrap_or_default(),
         }
+    }
+
+    ///
+    ///
+    ///
+    pub fn into_socks_bytes(self) -> Vec<u8> {
+        let mut data = vec![SOCKS_VER_6, SOCKS_CMD_CONNECT];
+        data.extend(self.destination.as_socks_bytes());
+        data.push(SOCKS_PADDING);
+
+        let options_bytes: Vec<_> = self.options.into_iter().flat_map(|o| o.as_socks_bytes()).collect();
+        let options_bytes_length = (options_bytes.len() as u16).to_be_bytes();
+
+        data.extend(options_bytes_length.iter());
+        data.extend(options_bytes.iter());
+
+        data
     }
 }
 
@@ -110,7 +127,7 @@ where
         destination,
         initial_data_length,
         options,
-        metadata,
+        Some(metadata),
     ))
 }
 
@@ -150,7 +167,7 @@ where
         _ => unreachable!(),
     };
 
-    // Read destination port and padding (ignored).
+    // Read destination port.
     let mut dst_port = [0; 2];
     stream.read_exact(&mut dst_port).await?;
 
@@ -190,7 +207,7 @@ where
             0x0002 => AuthMethodAdvertisementOption::from_socks_bytes(options_data)?,
             0x0003 => AuthMethodSelectionOption::from_socks_bytes(options_data)?,
             0xFDE8 => MetadataOption::from_socks_bytes(options_data)?,
-            _ => UnrecognizedOption::new(kind, options_data.to_vec()),
+            _ => UnrecognizedOption::new(kind, options_data.to_vec()).wrap(),
         };
 
         options.push(option);
@@ -200,9 +217,39 @@ where
     Ok(options)
 }
 
-pub async fn no_authentication<S>(stream: &mut S) -> Result<()>
+pub async fn read_no_authentication<S>(stream: &mut S) -> Result<Vec<SocksOption>>
 where
-    S: AsyncRead + AsyncWrite + Unpin,
+    S: AsyncRead + Unpin,
+{
+    // Read auth reply
+    let mut reply = [0; 1];
+    stream.read_exact(&mut reply).await?;
+
+    let socks_version = reply[0];
+    ensure!(
+        socks_version == SOCKS_VER_6,
+        "Proxy uses a different SOCKS version: {}",
+        socks_version
+    );
+
+    let mut reply = [0; 1];
+    stream.read_exact(&mut reply).await?;
+
+    let status = reply[0];
+    ensure!(
+        status == SOCKS_AUTH_SUCCESS,
+        "Authentication with proxy failed: {}",
+        status
+    );
+
+    let options = read_options(stream).await?;
+        
+    Ok(options)
+}
+
+pub async fn write_no_authentication<S>(stream: &mut S) -> Result<()>
+where
+    S: AsyncWrite + Unpin,
 {
     // Write auth reply
     let auth_reply = [SOCKS_VER_6, SOCKS_AUTH_SUCCESS, 0x00u8, 0x00u8];
@@ -237,6 +284,9 @@ pub enum SocksReply {
     ConnectionAttemptTimeOut = 0x09,
 }
 
+///
+///
+///
 pub async fn write_reply<S>(
     stream: &mut S,
     reply: SocksReply,
@@ -247,10 +297,10 @@ where
     let reply = [
         SOCKS_VER_6,
         reply as u8,
-        0x00,
-        0x00,
         SOCKS_PADDING,
         SOCKS_ATYP_IPV4,
+        0x00,
+        0x00,
         0x00,
         0x00,
         0x00,
@@ -262,4 +312,29 @@ where
     stream.write(&reply).await?;
 
     Ok(())
+}
+
+///
+///
+///
+pub async fn read_reply<S>(
+    stream: &mut S
+) -> Result<(Address, Vec<SocksOption>)>
+where
+    S: AsyncRead + Unpin,
+{
+    let mut operation_reply = [0; 3];
+    stream.read_exact(&mut operation_reply).await?;
+
+    let reply_code = operation_reply[1];
+    ensure!(
+        reply_code == SOCKS_REP_SUCCEEDED,
+        "CONNECT operation failed: {}",
+        reply_code
+    );
+
+    let binding = read_address(stream).await?;
+    let options = read_options(stream).await?;
+
+    Ok((binding, options))
 }

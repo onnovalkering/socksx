@@ -1,8 +1,9 @@
-use crate::socks6::options::{AuthMethodAdvertisementOption, SocksOption};
+use crate::socks6::{AuthMethod, options::{AuthMethodAdvertisementOption, SocksOption}};
+use crate::socks6::{self, Socks6Request};
 use crate::{constants::*, Address, Credentials};
 use anyhow::{ensure, Result};
-use std::net::SocketAddr;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use std::{convert::TryInto, net::SocketAddr};
+use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 
 #[derive(Clone)]
@@ -31,128 +32,51 @@ impl Socks6Client {
     /// ...
     /// ...
     /// [socks6-draft11] https://tools.ietf.org/html/draft-olteanu-intarea-socks-6-11
-    pub async fn connect<A: Into<Address>>(
+    pub async fn connect<A>(
         &self,
-        dst_addr: A,
+        destination: A,
         initial_data: Option<Vec<u8>>,
         options: Option<Vec<SocksOption>>,
-    ) -> Result<(TcpStream, Address)> {
+    ) -> Result<(TcpStream, Address)> 
+        where A: TryInto<Address, Error = anyhow::Error>
+    {
         if let Some(Credentials { username, password }) = &self.credentials {
-            ensure!(username.len() > 255, "Username can be no longer than 255 bytes.");
-            ensure!(password.len() > 255, "Password can be no longer than 255 bytes.");
+            ensure!(username.len() > 255, "Username MUST NOT be larger than 255 bytes.");
+            ensure!(password.len() > 255, "Password MUST NOT be larger than 255 bytes.");
         }
 
-        let dst_addr = dst_addr.into();
+        // Prepare initial data.
         let initial_data = initial_data.unwrap_or_default();
+        ensure!(initial_data.len() <= 2^14, "Initial data MUST NOT be larger than 16384 bytes.");
+        let initial_data_length = initial_data.len() as u16;
 
-        // Prepare SOCKS options
-        let mut auth_option_data = vec![];
-        auth_option_data.extend((initial_data.len() as u16).to_be_bytes().iter());
+        // Prepare SOCKS options.
+        let mut auth_methods = vec![];
         if self.credentials.is_some() {
-            auth_option_data.push(SOCKS_AUTH_USERNAME_PASSWORD)
+            auth_methods.push(AuthMethod::UsernamePassword);
         }
 
-        let auth_meth_adv_option = AuthMethodAdvertisementOption::new(initial_data.len() as u16, vec![]);
+        let auth_methods_adv = AuthMethodAdvertisementOption::new(initial_data_length, vec![]);
+        let mut options = options.unwrap_or_default();
+        options.push(auth_methods_adv.wrap());
 
-        let options = if let Some(mut options) = options.clone() {
-            options.push(auth_meth_adv_option);
-            options
-        } else {
-            vec![auth_meth_adv_option]
-        };
-
-        let options_bytes: Vec<u8> = options.iter().flat_map(|o| o.as_socks_bytes()).collect();
-
-        // Prepare SOCKS request
-        let mut request: Vec<u8> = vec![SOCKS_VER_6, SOCKS_CMD_CONNECT];
-        request.extend(dst_addr.as_socks_bytes());
-        request.push(SOCKS_PADDING);
-        request.extend((options_bytes.len() as u16).to_be_bytes().iter());
-        request.extend(options_bytes.iter());
-
-        dbg!(&request);
+        // Create SOCKS6 CONNECT request.
+        let request = Socks6Request::new(
+            SOCKS_CMD_CONNECT,
+            destination.try_into()?,
+            initial_data_length,
+            options,
+            None,
+        );
 
         // Send SOCKS request information.
         let mut stream = TcpStream::connect(&self.proxy_addr).await?;
-        stream.write(&request).await?;
-        if !initial_data.is_empty() {
-            stream.write(&initial_data).await?;
-        }
+        let request_bytes = request.into_socks_bytes();
+        stream.write(&request_bytes).await?;
 
-        // check !
-
-        // Wait for authentication reply.
-        let mut reply = [0; 1];
-        stream.read_exact(&mut reply).await?;
-
-        let socks_version = reply[0];
-        ensure!(
-            socks_version == SOCKS_VER_6,
-            "Proxy uses a different SOCKS version: {}",
-            socks_version
-        );
-
-        let mut reply = [0; 3];
-        stream.read_exact(&mut reply).await?;
-
-        let status = reply[0];
-        ensure!(
-            status == SOCKS_AUTH_SUCCESS,
-            "Authentication with proxy failed: {}",
-            status
-        );
-
-        let options_length = ((reply[1] as u16) << 8) | reply[2] as u16;
-        let mut reply_options = vec![0; options_length as usize];
-        stream.read_exact(&mut reply_options).await?;
-
-        // check !
-
-        // Wait for operation reply.
-        let mut operation_reply = [0; 6];
-        stream.read_exact(&mut operation_reply).await?;
-
-        let reply_code = operation_reply[1];
-        ensure!(
-            reply_code == SOCKS_REP_SUCCEEDED,
-            "CONNECT operation failed: {}",
-            reply_code
-        );
-
-        let bnd_port = [operation_reply[2], operation_reply[3]];
-
-        let atyp = operation_reply[5];
-        let binding = match atyp {
-            SOCKS_ATYP_IPV4 => {
-                let mut bnd_addr = [0; 4];
-                stream.read_exact(&mut bnd_addr).await?;
-
-                (bnd_addr, bnd_port).into()
-            }
-            SOCKS_ATYP_IPV6 => {
-                let mut bnd_addr = [0; 16];
-                stream.read_exact(&mut bnd_addr).await?;
-
-                (bnd_addr, bnd_port).into()
-            }
-            SOCKS_ATYP_DOMAINNAME => {
-                let mut length = [0; 1];
-                stream.read_exact(&mut length).await?;
-
-                let mut bnd_addr = vec![0; length[0] as usize];
-                stream.read_exact(&mut bnd_addr).await?;
-
-                (String::from_utf8(bnd_addr)?, bnd_port).into()
-            }
-            _ => unreachable!(),
-        };
-
-        let mut options_length = [0; 2];
-        stream.read_exact(&mut options_length).await?;
-
-        let options_length = ((options_length[0] as u16) << 8) | options_length[1] as u16;
-        let mut reply_options = vec![0; options_length as usize];
-        stream.read_exact(&mut reply_options).await?;
+        // Wait for authentication and operation reply.
+        let _ = socks6::read_no_authentication(&mut stream).await?;
+        let (binding, _) = socks6::read_reply(&mut stream).await?;
 
         Ok((stream, binding))
     }

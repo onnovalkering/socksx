@@ -29,7 +29,7 @@ impl Socks6Handler {
     ) -> Result<()> {
         // Receive SOCKS request, and allow unauthenticated access.
         let request = socks6::read_request(source).await?;
-        socks6::no_authentication(source).await?;
+        socks6::write_no_authentication(source).await?;
 
         // Connect to destination and send initial data.
         let mut destination = TcpStream::connect(request.destination.to_string()).await?;

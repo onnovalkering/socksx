@@ -28,7 +28,7 @@ impl SocksOption {
             Metadata(option) => option.clone().into_socks_bytes(),
             Unrecognized(option) => option.clone().into_socks_bytes(),
         }
-    }
+    }    
 }
 
 #[derive(Clone, Debug)]
@@ -41,11 +41,15 @@ impl AuthMethodAdvertisementOption {
     pub fn new(
         initial_data_length: u16,
         methods: Vec<AuthMethod>,
-    ) -> SocksOption {
-        SocksOption::AuthMethodAdvertisement(Self {
+    ) -> Self {
+        Self {
             initial_data_length,
             methods,
-        })
+        }
+    }
+
+    pub fn wrap(self) -> SocksOption {
+        SocksOption::AuthMethodAdvertisement(self)
     }
 
     ///
@@ -66,7 +70,7 @@ impl AuthMethodAdvertisementOption {
             .map(|m| AuthMethod::from_u8(*m).unwrap())
             .collect();
 
-        Ok(Self::new(initial_data_length, methods))
+        Ok(Self::new(initial_data_length, methods).wrap())
     }
 
     ///
@@ -86,8 +90,12 @@ pub struct AuthMethodSelectionOption {
 }
 
 impl AuthMethodSelectionOption {
-    pub fn new(method: AuthMethod) -> SocksOption {
-        SocksOption::AuthMethodSelection(Self { method })
+    pub fn new(method: AuthMethod) -> Self {
+        Self { method }
+    }
+
+    pub fn wrap(self) -> SocksOption {
+        SocksOption::AuthMethodSelection(self)
     }
 
     pub fn from_socks_bytes(bytes: Vec<u8>) -> Result<SocksOption> {
@@ -95,7 +103,7 @@ impl AuthMethodSelectionOption {
 
         let method = bytes[0];
         if let Some(method) = AuthMethod::from_u8(method) {
-            Ok(Self::new(method))
+            Ok(Self::new(method).wrap())
         } else {
             bail!("Not a valid authentication method selection: {}", method)
         }
@@ -118,8 +126,12 @@ impl MetadataOption {
     pub fn new(
         key: u16,
         value: String,
-    ) -> SocksOption {
-        SocksOption::Metadata(Self { key, value })
+    ) -> Self {
+        Self { key, value }
+    }
+
+    pub fn wrap(self) -> SocksOption {
+        SocksOption::Metadata(self)
     }
 
     pub fn from_socks_bytes(bytes: Vec<u8>) -> Result<SocksOption> {
@@ -129,7 +141,7 @@ impl MetadataOption {
 
         let value = bytes[4..(length as usize) + 4].to_vec();
         if let Ok(value) = String::from_utf8(value) {
-            Ok(Self::new(key, value))
+            Ok(Self::new(key, value).wrap())
         } else {
             bail!("Not a valid metadata UTF-8 string: {:?}", bytes[2..].to_vec())
         }
@@ -155,8 +167,12 @@ impl UnrecognizedOption {
     pub fn new(
         kind: u16,
         data: Vec<u8>,
-    ) -> SocksOption {
-        SocksOption::Unrecognized(Self { kind, data })
+    ) -> Self {
+        Self { kind, data }
+    }
+
+    pub fn wrap(self) -> SocksOption {
+        SocksOption::Unrecognized(self)
     }
 
     pub fn into_socks_bytes(self) -> Vec<u8> {
