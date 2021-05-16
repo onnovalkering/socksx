@@ -1,10 +1,11 @@
+use crate::address::{self, Address};
+use crate::constants::*;
 use crate::socks6::options::{
     AuthMethodAdvertisementOption, AuthMethodSelectionOption, MetadataOption, SocksOption, UnrecognizedOption,
 };
-use crate::{constants::*, Address};
 use anyhow::{ensure, Result};
 use num_traits::FromPrimitive;
-use std::{collections::HashMap, net::IpAddr};
+use std::collections::HashMap;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 mod options;
@@ -23,9 +24,18 @@ pub enum AuthMethod {
     NoAcceptableMethods = 0xFF,
 }
 
+#[repr(u8)]
+#[derive(Clone, Debug, FromPrimitive, PartialEq)]
+pub enum Socks6Command {
+    NoOp = 0x00,
+    Connect = 0x01,
+    Bind = 0x02,
+    UdpAssociate = 0x03,
+}
+
 #[derive(Clone, Debug)]
 pub struct Socks6Request {
-    pub command: SocksCommand,
+    pub command: Socks6Command,
     pub destination: Address,
     pub initial_data_length: u16,
     pub options: Vec<SocksOption>,
@@ -44,7 +54,7 @@ impl Socks6Request {
         metadata: Option<HashMap<u16, String>>,
     ) -> Self {
         Socks6Request {
-            command: SocksCommand::from_u8(command).unwrap(),
+            command: Socks6Command::from_u8(command).unwrap(),
             destination,
             initial_data_length,
             options,
@@ -70,15 +80,6 @@ impl Socks6Request {
     }
 }
 
-#[repr(u8)]
-#[derive(Clone, Debug, FromPrimitive, PartialEq)]
-pub enum SocksCommand {
-    NoOp = 0x00,
-    Connect = 0x01,
-    Bind = 0x02,
-    UdpAssociate = 0x03,
-}
-
 ///
 ///
 ///
@@ -96,7 +97,7 @@ where
     ensure!(version == SOCKS_VER_6, "Version mismatch!");
     ensure!(command == SOCKS_CMD_CONNECT, "Only COMMAND is supported!");
 
-    let destination = read_address(stream).await?;
+    let destination = address::read_address(stream).await?;
 
     let mut padding = [0; 1];
     stream.read_exact(&mut padding).await?;
@@ -129,51 +130,6 @@ where
         options,
         Some(metadata),
     ))
-}
-
-///
-///
-///
-pub async fn read_address<S>(stream: &mut S) -> Result<Address>
-where
-    S: AsyncRead + Unpin,
-{
-    // Read address type.
-    let mut address_type = [0; 1];
-    stream.read_exact(&mut address_type).await?;
-
-    let dst_addr = match address_type[0] {
-        SOCKS_ATYP_IPV4 => {
-            let mut dst_addr = [0; 4];
-            stream.read_exact(&mut dst_addr).await?;
-
-            IpAddr::from(dst_addr).to_string()
-        }
-        SOCKS_ATYP_IPV6 => {
-            let mut dst_addr = [0; 16];
-            stream.read_exact(&mut dst_addr).await?;
-
-            IpAddr::from(dst_addr).to_string()
-        }
-        SOCKS_ATYP_DOMAINNAME => {
-            let mut length = [0; 1];
-            stream.read_exact(&mut length).await?;
-
-            let mut dst_addr = vec![0; length[0] as usize];
-            stream.read_exact(&mut dst_addr).await?;
-
-            String::from_utf8_lossy(&dst_addr[..]).to_string()
-        }
-        _ => unreachable!(),
-    };
-
-    // Read destination port.
-    let mut dst_port = [0; 2];
-    stream.read_exact(&mut dst_port).await?;
-
-    let dst_port = ((dst_port[0] as u16) << 8) | dst_port[1] as u16;
-
-    Ok(Address::new(dst_addr, dst_port))
 }
 
 ///
@@ -243,7 +199,7 @@ where
     );
 
     let options = read_options(stream).await?;
-        
+
     Ok(options)
 }
 
@@ -317,9 +273,7 @@ where
 ///
 ///
 ///
-pub async fn read_reply<S>(
-    stream: &mut S
-) -> Result<(Address, Vec<SocksOption>)>
+pub async fn read_reply<S>(stream: &mut S) -> Result<(Address, Vec<SocksOption>)>
 where
     S: AsyncRead + Unpin,
 {
@@ -333,7 +287,7 @@ where
         reply_code
     );
 
-    let binding = read_address(stream).await?;
+    let binding = address::read_address(stream).await?;
     let options = read_options(stream).await?;
 
     Ok((binding, options))

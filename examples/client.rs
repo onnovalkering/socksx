@@ -33,7 +33,7 @@ async fn main() -> Result<()> {
             Arg::with_name("DEST_PORT")
                 .help("The port of the destination server")
                 .default_value("12345"),
-        )        
+        )
         .get_matches();
 
     let proxy_host = args.value_of("PROXY_HOST").unwrap();
@@ -42,15 +42,11 @@ async fn main() -> Result<()> {
 
     let dest_host = args.value_of("DEST_HOST").unwrap();
     let dest_port = args.value_of("DEST_PORT").unwrap();
-    let dest_addr = format!("{}:{}", dest_host, dest_port);    
+    let dest_addr = format!("{}:{}", dest_host, dest_port);
 
     match args.value_of("VERSION") {
-        Some("5") => {
-            connect_v5(proxy_addr, dest_addr).await
-        }
-        Some("6") => {
-            connect_v6(proxy_addr, dest_addr).await
-        }
+        Some("5") => connect_v5(proxy_addr, dest_addr).await,
+        Some("6") => connect_v6(proxy_addr, dest_addr).await,
         Some(version) => panic!("Unsupported version: {}", version),
         None => unreachable!(),
     }

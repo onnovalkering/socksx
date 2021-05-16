@@ -1,5 +1,8 @@
-use crate::socks6::{AuthMethod, options::{AuthMethodAdvertisementOption, SocksOption}};
 use crate::socks6::{self, Socks6Request};
+use crate::socks6::{
+    options::{AuthMethodAdvertisementOption, SocksOption},
+    AuthMethod,
+};
 use crate::{constants::*, Address, Credentials};
 use anyhow::{ensure, Result};
 use std::{convert::TryInto, net::SocketAddr};
@@ -37,8 +40,9 @@ impl Socks6Client {
         destination: A,
         initial_data: Option<Vec<u8>>,
         options: Option<Vec<SocksOption>>,
-    ) -> Result<(TcpStream, Address)> 
-        where A: TryInto<Address, Error = anyhow::Error>
+    ) -> Result<(TcpStream, Address)>
+    where
+        A: TryInto<Address, Error = anyhow::Error>,
     {
         if let Some(Credentials { username, password }) = &self.credentials {
             ensure!(username.len() > 255, "Username MUST NOT be larger than 255 bytes.");
@@ -47,7 +51,10 @@ impl Socks6Client {
 
         // Prepare initial data.
         let initial_data = initial_data.unwrap_or_default();
-        ensure!(initial_data.len() <= 2^14, "Initial data MUST NOT be larger than 16384 bytes.");
+        ensure!(
+            initial_data.len() <= 2 ^ 14,
+            "Initial data MUST NOT be larger than 16384 bytes."
+        );
         let initial_data_length = initial_data.len() as u16;
 
         // Prepare SOCKS options.

@@ -28,7 +28,7 @@ impl SocksOption {
             Metadata(option) => option.clone().into_socks_bytes(),
             Unrecognized(option) => option.clone().into_socks_bytes(),
         }
-    }    
+    }
 }
 
 #[derive(Clone, Debug)]
