@@ -60,4 +60,17 @@ impl Socks6Handler {
 
         Ok(())
     }
+
+    ///
+    ///
+    ///
+    pub async fn refuse_request(
+        &self,
+        source: &mut TcpStream,
+    ) -> Result<()> {
+        // Notify source that the connection is refused.
+        socks6::write_reply(source, Socks6Reply::ConnectionRefused).await?;
+
+        Ok(())
+    }
 }

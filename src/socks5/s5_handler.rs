@@ -124,4 +124,17 @@ impl Socks5Handler {
 
         Ok(())
     }
+
+    ///
+    ///
+    ///
+    pub async fn refuse_request(
+        &self,
+        source: &mut TcpStream,
+    ) -> Result<()> {
+        // Notify source that the connection is refused.
+        socks5::write_reply(source, Socks5Reply::ConnectionRefused).await?;
+
+        Ok(())
+    }
 }
