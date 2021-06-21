@@ -2,102 +2,96 @@
 extern crate human_panic;
 
 use anyhow::Result;
-use clap::{App, Arg};
+use clap::Clap;
 use dotenv::dotenv;
+use itertools::Itertools;
 use log::LevelFilter;
-use socksx::{self, ProxyAddress, Socks5Handler, Socks6Handler};
-use tokio::sync::Semaphore;
+use socksx::{self, Socks5Handler, Socks6Handler};
 use std::{convert::TryInto, sync::Arc};
 use tokio::net::{TcpListener, TcpStream};
+use tokio::sync::Semaphore;
 use tokio::time::Instant;
+
+#[derive(Clap)]
+#[clap(version = env!("CARGO_PKG_VERSION"))]
+struct CLI {
+    /// Entry in the proxy chain, the order is preserved
+    #[clap(short, long, env = "CHAIN", multiple = true)]
+    chain: Vec<String>,
+
+    /// Prints debug information
+    #[clap(short, long, env = "DEBUG", takes_value = false)]
+    debug: bool,
+
+    /// Host (IP) for the SOCKS server
+    #[clap(short, long, env = "HOST", default_value = "0.0.0.0")]
+    host: String,
+
+    /// Concurrent connections limit (0=unlimted)
+    #[clap(short, long, env = "LIMIT", default_value = "256")]
+    limit: usize,
+
+    /// Port for the SOCKS server
+    #[clap(short, long, env = "PORT", default_value = "1080")]
+    port: u16,
+
+    /// SOCKS version
+    #[clap(short, long, env = "SOCKS", default_value = "6", possible_values = &["5", "6"])]
+    socks: u8,
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
-
-    let args = App::new("socksx")
-        .version("0.2.0")
-        .about("https://github.com/onnovalkering/socksx")
-        .arg(
-            Arg::new("DEBUG")
-                .short('d')
-                .long("debug")
-                .about("Prints debug information verbosely")
-        )
-        .arg(
-            Arg::new("VERSION")
-                .short('s')
-                .long("socks")
-                .about("SOCKS version to use")
-                .possible_values(&["5", "6"])
-                .default_value("6"),
-        )
-        .arg(
-            Arg::new("CONN_LIMIT")
-                .long("connections-limit")
-                .about("Concurrent connections limit (0=unlimted)")
-                .default_value("0"),
-        )        
-        .arg(
-            Arg::new("PORT")
-                .short('p')
-                .long("port")
-                .about("Port to use")
-                .default_value("1080"),
-        )
-        .arg(
-            Arg::new("CHAIN")
-                .short('c')
-                .long("chain")
-                .about("Entry in the proxy chain, the order is preserved")
-                .multiple(true)
-                .takes_value(true),
-        )
-        .get_matches();
+    let args = CLI::parse();
 
     let mut logger = env_logger::builder();
     logger.format_module_path(false);
 
-    if args.is_present("DEBUG") {
+    if args.debug {
         logger.filter_level(LevelFilter::Debug).init();
     } else {
         logger.filter_level(LevelFilter::Info).init();
 
         setup_panic!(Metadata {
-            name: "socksx".into(),
+            name: "SOCKSX".into(),
             version: env!("CARGO_PKG_VERSION").into(),
             authors: env!("CARGO_PKG_AUTHORS").replace(":", ", ").into(),
             homepage: env!("CARGO_PKG_HOMEPAGE").into(),
         });
     }
 
-    let port = args.value_of("PORT").unwrap();
-    let chain: Option<Vec<ProxyAddress>> = args
-        .values_of("CHAIN")
-        .map(|c| c.into_iter().map(|c| c.to_string().try_into().unwrap()).collect());
+    // TODO: validate host
 
-    let conn_limit = args.value_of("CONN_LIMIT").unwrap();
-    let semaphore = if conn_limit != "0" {
-        Some(Arc::new(Semaphore::new(conn_limit.parse()?)))
+    //
+    //
+    let chain = args.chain.iter().cloned().map(|c| c.try_into()).try_collect()?;
+
+    //
+    //
+    let semaphore = if args.limit > 0 {
+        Some(Arc::new(Semaphore::new(args.limit)))
     } else {
         None
     };
 
-    let listener = TcpListener::bind(format!("0.0.0.0:{}", port)).await?;
-    match args.value_of("VERSION") {
-        Some("5") => {
+    //
+    //
+    let listener = TcpListener::bind(format!("{}:{}", args.host, args.port)).await?;
+    match args.socks {
+        5 => {
             let handler = Arc::new(Socks5Handler::new(chain));
 
             loop {
                 let (incoming, _) = listener.accept().await?;
-                
+
                 let handler = Arc::clone(&handler);
                 let semaphore = semaphore.clone();
 
                 tokio::spawn(process_v5(incoming, handler, semaphore));
             }
         }
-        Some("6") => {
+        6 => {
             let handler = Arc::new(Socks6Handler::new(chain));
 
             loop {
@@ -108,8 +102,7 @@ async fn main() -> Result<()> {
                 tokio::spawn(process_v6(incoming, handler, semaphore));
             }
         }
-        Some(version) => panic!("Unsupported version: {}", version),
-        None => unreachable!(),
+        _ => unreachable!(),
     }
 }
 

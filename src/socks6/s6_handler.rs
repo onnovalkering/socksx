@@ -12,7 +12,7 @@ pub struct Socks6Handler {
 
 impl Default for Socks6Handler {
     fn default() -> Self {
-        Self::new(None)
+        Self::new(vec![])
     }
 }
 
@@ -20,9 +20,7 @@ impl Socks6Handler {
     ///
     ///
     ///
-    pub fn new(chain: Option<Vec<ProxyAddress>>) -> Self {
-        let chain = chain.unwrap_or_default();
-
+    pub fn new(chain: Vec<ProxyAddress>) -> Self {
         Socks6Handler { chain }
     }
 
