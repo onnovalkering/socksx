@@ -6,11 +6,13 @@ use clap::Clap;
 use dotenv::dotenv;
 use itertools::Itertools;
 use log::LevelFilter;
-use socksx::{self, Socks5Handler, Socks6Handler};
+use socksx::{self, Socks5Handler, Socks6Handler, SocksHandler};
 use std::{convert::TryInto, sync::Arc};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Semaphore;
 use tokio::time::Instant;
+
+type Handler = Arc<dyn SocksHandler + Sync + Send>;
 
 #[derive(Clap)]
 #[clap(version = env!("CARGO_PKG_VERSION"))]
@@ -78,67 +80,28 @@ async fn main() -> Result<()> {
     //
     //
     let listener = TcpListener::bind(format!("{}:{}", args.host, args.port)).await?;
-    match args.socks {
-        5 => {
-            let handler = Arc::new(Socks5Handler::new(chain));
-
-            loop {
-                let (incoming, _) = listener.accept().await?;
-
-                let handler = Arc::clone(&handler);
-                let semaphore = semaphore.clone();
-
-                tokio::spawn(process_v5(incoming, handler, semaphore));
-            }
-        }
-        6 => {
-            let handler = Arc::new(Socks6Handler::new(chain));
-
-            loop {
-                let (incoming, _) = listener.accept().await?;
-                let handler = Arc::clone(&handler);
-                let semaphore = semaphore.clone();
-
-                tokio::spawn(process_v6(incoming, handler, semaphore));
-            }
-        }
+    let handler: Handler = match args.socks {
+        5 => Arc::new(Socks5Handler::new(chain)),
+        6 => Arc::new(Socks6Handler::new(chain)),
         _ => unreachable!(),
+    };
+
+    loop {
+        let (incoming, _) = listener.accept().await?;
+
+        let handler = Arc::clone(&handler);
+        let semaphore = semaphore.clone();
+
+        tokio::spawn(process(incoming, handler, semaphore));
     }
 }
 
 ///
 ///
 ///
-async fn process_v5(
+async fn process(
     incoming: TcpStream,
-    handler: Arc<Socks5Handler>,
-    semaphore: Option<Arc<Semaphore>>,
-) -> Result<()> {
-    let mut incoming = incoming;
-    let start_time = Instant::now();
-
-    if let Some(semaphore) = semaphore {
-        let permit = semaphore.try_acquire();
-        if permit.is_ok() {
-            handler.handle_request(&mut incoming).await?;
-        } else {
-            handler.refuse_request(&mut incoming).await?;
-        }
-    } else {
-        handler.handle_request(&mut incoming).await?;
-    }
-
-    println!("{}ms", Instant::now().saturating_duration_since(start_time).as_millis());
-
-    Ok(())
-}
-
-///
-///
-///
-async fn process_v6(
-    incoming: TcpStream,
-    handler: Arc<Socks6Handler>,
+    handler: Handler,
     semaphore: Option<Arc<Semaphore>>,
 ) -> Result<()> {
     let mut incoming = incoming;

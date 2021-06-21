@@ -1,8 +1,9 @@
 use crate::addresses::{self, ProxyAddress};
-use crate::chain;
 use crate::socks5::{self, Socks5Reply};
+use crate::{chain, SocksHandler};
 use crate::{constants::*, Credentials};
 use anyhow::Result;
+use async_trait::async_trait;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
@@ -28,8 +29,11 @@ impl Socks5Handler {
             chain,
         }
     }
+}
 
-    pub async fn handle_request(
+#[async_trait]
+impl SocksHandler for Socks5Handler {
+    async fn handle_request(
         &self,
         source: &mut TcpStream,
     ) -> Result<()> {
@@ -126,7 +130,7 @@ impl Socks5Handler {
     ///
     ///
     ///
-    pub async fn refuse_request(
+    async fn refuse_request(
         &self,
         source: &mut TcpStream,
     ) -> Result<()> {

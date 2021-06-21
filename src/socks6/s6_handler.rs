@@ -1,7 +1,9 @@
 use crate::addresses::ProxyAddress;
 use crate::chain;
 use crate::socks6::{self, Socks6Reply};
+use crate::SocksHandler;
 use anyhow::Result;
+use async_trait::async_trait;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
@@ -23,11 +25,14 @@ impl Socks6Handler {
     pub fn new(chain: Vec<ProxyAddress>) -> Self {
         Socks6Handler { chain }
     }
+}
 
+#[async_trait]
+impl SocksHandler for Socks6Handler {
     ///
     ///
     ///
-    pub async fn handle_request(
+    async fn handle_request(
         &self,
         source: &mut TcpStream,
     ) -> Result<()> {
@@ -62,7 +67,7 @@ impl Socks6Handler {
     ///
     ///
     ///
-    pub async fn refuse_request(
+    async fn refuse_request(
         &self,
         source: &mut TcpStream,
     ) -> Result<()> {

@@ -13,6 +13,8 @@ pub mod chain;
 pub mod constants;
 #[path = "./common/credentials.rs"]
 pub mod credentials;
+#[path = "./common/interface.rs"]
+pub mod interface;
 pub mod socks5;
 pub mod socks6;
 #[path = "./common/util.rs"]
@@ -20,6 +22,7 @@ pub mod util;
 
 pub use addresses::{Address, ProxyAddress};
 pub use credentials::Credentials;
+pub use interface::SocksHandler;
 pub use socks5::{Socks5Client, Socks5Handler};
 pub use socks6::{Socks6Client, Socks6Handler};
 pub use tokio::io::copy_bidirectional;
