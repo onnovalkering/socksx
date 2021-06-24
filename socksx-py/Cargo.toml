@@ -1,0 +1,15 @@
+[package]
+name = "socksx-py"
+version = "0.1.0"
+description = "A SOCKS toolkit for Python"
+authors = ["Onno Valkering"]
+edition = "2018"
+license = "MIT"
+
+[lib]
+name = "socksx"
+crate-type = ["cdylib"]
+
+[dependencies]
+socksx = { path = "../socksx" }
+pyo3 = { version = "0.13", features = ["extension-module"] }
