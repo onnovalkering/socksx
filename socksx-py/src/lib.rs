@@ -7,6 +7,9 @@ use socks6::*;
 
 #[pymodule]
 fn socksx(py: Python, m: &PyModule) -> PyResult<()> {
+    pyo3_asyncio::try_init(py)?;
+    pyo3_asyncio::tokio::init_multi_thread_once();
+    
     m.add_wrapped(wrap_pymodule!(socks6))?;
 
     let sys = PyModule::import(py, "sys")?;
