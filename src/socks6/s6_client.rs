@@ -31,16 +31,35 @@ impl Socks6Client {
         })
     }
 
-    /// ...
-    /// ...
-    /// ...
-    /// [socks6-draft11] https://tools.ietf.org/html/draft-olteanu-intarea-socks-6-11
+    /// 
+    /// 
+    /// 
     pub async fn connect<A>(
         &self,
         destination: A,
         initial_data: Option<Vec<u8>>,
         options: Option<Vec<SocksOption>>,
     ) -> Result<(TcpStream, Address)>
+    where
+        A: TryInto<Address, Error = anyhow::Error>,
+    {
+        let mut stream = TcpStream::connect(&self.proxy_addr).await?;
+        let binding = self.handshake(destination, initial_data, options, &mut stream).await?;
+
+        Ok((stream, binding))
+    }
+
+    /// ...
+    /// ...
+    /// ...
+    /// [socks6-draft11] https://tools.ietf.org/html/draft-olteanu-intarea-socks-6-11
+    pub async fn handshake<A>(
+        &self,
+        destination: A,
+        initial_data: Option<Vec<u8>>,
+        options: Option<Vec<SocksOption>>,
+        stream: &mut TcpStream,
+    ) -> Result<Address>
     where
         A: TryInto<Address, Error = anyhow::Error>,
     {
@@ -77,14 +96,13 @@ impl Socks6Client {
         );
 
         // Send SOCKS request information.
-        let mut stream = TcpStream::connect(&self.proxy_addr).await?;
         let request_bytes = request.into_socks_bytes();
         stream.write(&request_bytes).await?;
 
         // Wait for authentication and operation reply.
-        let _ = socks6::read_no_authentication(&mut stream).await?;
-        let (binding, _) = socks6::read_reply(&mut stream).await?;
+        let _ = socks6::read_no_authentication(stream).await?;
+        let (binding, _) = socks6::read_reply(stream).await?;
 
-        Ok((stream, binding))
+        Ok(binding)
     }
 }

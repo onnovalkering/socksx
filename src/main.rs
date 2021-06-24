@@ -16,7 +16,7 @@ type Handler = Arc<dyn SocksHandler + Sync + Send>;
 
 #[derive(Clap)]
 #[clap(version = env!("CARGO_PKG_VERSION"))]
-struct CLI {
+struct Args {
     /// Entry in the proxy chain, the order is preserved
     #[clap(short, long, env = "CHAIN", multiple = true)]
     chain: Vec<String>,
@@ -45,7 +45,7 @@ struct CLI {
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
-    let args = CLI::parse();
+    let args = Args::parse();
 
     let mut logger = env_logger::builder();
     logger.format_module_path(false);
@@ -110,12 +110,12 @@ async fn process(
     if let Some(semaphore) = semaphore {
         let permit = semaphore.try_acquire();
         if permit.is_ok() {
-            handler.handle_request(&mut incoming).await?;
+            handler.accept_request(&mut incoming).await?;
         } else {
             handler.refuse_request(&mut incoming).await?;
         }
     } else {
-        handler.handle_request(&mut incoming).await?;
+        handler.accept_request(&mut incoming).await?;
     }
 
     println!("{}ms", Instant::now().saturating_duration_since(start_time).as_millis());

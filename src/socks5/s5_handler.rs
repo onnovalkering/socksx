@@ -1,6 +1,6 @@
 use crate::addresses::{self, ProxyAddress};
 use crate::socks5::{self, Socks5Reply};
-use crate::{chain, SocksHandler};
+use crate::SocksHandler;
 use crate::{constants::*, Credentials};
 use anyhow::Result;
 use async_trait::async_trait;
@@ -33,10 +33,41 @@ impl Socks5Handler {
 
 #[async_trait]
 impl SocksHandler for Socks5Handler {
-    async fn handle_request(
+    ///
+    ///
+    ///
+    async fn accept_request(
         &self,
         source: &mut TcpStream,
     ) -> Result<()> {
+        let mut destination = self.setup(source).await?;
+
+        // Start bidirectional copy, after this the connection closes.
+        tokio::io::copy_bidirectional(source, &mut destination).await?;
+
+        Ok(())
+    }
+
+    ///
+    ///
+    ///
+    async fn refuse_request(
+        &self,
+        source: &mut TcpStream,
+    ) -> Result<()> {
+        // Notify source that the connection is refused.
+        socks5::write_reply(source, Socks5Reply::ConnectionRefused).await?;
+
+        Ok(())
+    }
+
+    ///
+    ///
+    ///
+    async fn setup(
+        &self,
+        source: &mut TcpStream,
+    ) -> Result<TcpStream> {
         let mut request = [0; 2];
         source.read_exact(&mut request).await?;
 
@@ -111,32 +142,12 @@ impl SocksHandler for Socks5Handler {
         }
 
         let destination = addresses::read_address(source).await?;
-        let mut destination = if !self.chain.is_empty() {
-            chain::setup(&self.chain, destination).await?
-        } else {
-            TcpStream::connect(destination.to_string()).await?
-        };
+        let destination = TcpStream::connect(destination.to_string()).await?;
 
         // Notify source that the connection has been set up.
         socks5::write_reply(source, Socks5Reply::Success).await?;
         source.flush().await?;
 
-        // Start bidirectional copy, after this the connection closes.
-        tokio::io::copy_bidirectional(source, &mut destination).await?;
-
-        Ok(())
-    }
-
-    ///
-    ///
-    ///
-    async fn refuse_request(
-        &self,
-        source: &mut TcpStream,
-    ) -> Result<()> {
-        // Notify source that the connection is refused.
-        socks5::write_reply(source, Socks5Reply::ConnectionRefused).await?;
-
-        Ok(())
+        Ok(destination)
     }
 }

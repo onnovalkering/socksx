@@ -1,17 +1,20 @@
 use crate::addresses::{self, Address};
-use crate::constants::*;
+use crate::{ProxyAddress, constants::*};
 use crate::socks6::options::{
     AuthMethodAdvertisementOption, AuthMethodSelectionOption, MetadataOption, SocksOption, UnrecognizedOption,
 };
 use anyhow::{ensure, Result};
 use num_traits::FromPrimitive;
 use std::collections::HashMap;
+use std::convert::TryInto;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
+pub mod chain;
 pub mod options;
 mod s6_client;
 mod s6_handler;
 
+pub use chain::SocksChain;
 pub use s6_client::Socks6Client;
 pub use s6_handler::Socks6Handler;
 
@@ -59,6 +62,41 @@ impl Socks6Request {
             initial_data_length,
             options,
             metadata: metadata.unwrap_or_default(),
+        }
+    }
+
+    ///
+    ///
+    ///
+    pub fn chain(
+        &self,
+        static_links: &[ProxyAddress],
+    ) -> Result<Option<SocksChain>> {
+        let length = self.metadata.get(&999u16);
+        
+        let mut chain = if let Some(length) = length {
+            let length: usize = length.parse()?;
+            let index = self.metadata.get(&998u16).unwrap().parse()?;
+
+            let links: Vec<ProxyAddress> = (1000..1000+length)
+                .map(|i| i as u16)
+                .map(|i| self.metadata.get(&i).unwrap().clone())
+                .map(|x| x.try_into().unwrap())
+                .collect();
+
+            SocksChain::new(index, links)
+        } else {
+            SocksChain::default()
+        };
+
+        if !static_links.is_empty() {
+            chain.detour(static_links);
+        }
+
+        if chain.links.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(chain))
         }
     }
 

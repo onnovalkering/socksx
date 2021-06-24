@@ -12,7 +12,7 @@ async fn main() -> Result<()> {
                 .long("socks")
                 .about("The SOCKS version to use")
                 .possible_values(&["5", "6"])
-                .default_value("5"),
+                .default_value("6"),
         )
         .arg(
             Arg::new("PROXY_HOST")

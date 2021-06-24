@@ -27,6 +27,16 @@ impl ProxyAddress {
             credentials,
         }
     }
+
+    pub fn root() -> Self {
+        ProxyAddress::new(6, String::from("root"), 1080, None)
+    }
+}
+
+impl ToString for ProxyAddress {
+    fn to_string(&self) -> String {
+        format!("socks{}://{}:{}", self.socks_version, self.host, self.port)
+    }
 }
 
 impl TryFrom<String> for ProxyAddress {
@@ -149,6 +159,14 @@ impl TryFrom<String> for Address {
         } else {
             bail!("Address doesn't seperate host and port by ':'.")
         }
+    }
+}
+
+impl TryFrom<&ProxyAddress> for Address {
+    type Error = anyhow::Error;
+
+    fn try_from(addr: &ProxyAddress) -> Result<Self> {
+        format!("{}:{}", addr.host, addr.port).try_into()
     }
 }
 

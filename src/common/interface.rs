@@ -4,7 +4,7 @@ use tokio::net::TcpStream;
 
 #[async_trait]
 pub trait SocksHandler {
-    async fn handle_request(
+    async fn accept_request(
         &self,
         source: &mut TcpStream,
     ) -> Result<()>;
@@ -13,4 +13,9 @@ pub trait SocksHandler {
         &self,
         source: &mut TcpStream,
     ) -> Result<()>;
+
+    async fn setup(
+        &self,
+        source: &mut TcpStream,
+    ) -> Result<TcpStream>;
 }

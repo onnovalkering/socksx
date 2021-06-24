@@ -7,8 +7,6 @@ extern crate num_derive;
 
 #[path = "./common/addresses.rs"]
 pub mod addresses;
-#[path = "./common/chain.rs"]
-pub mod chain;
 #[path = "./common/constants.rs"]
 pub mod constants;
 #[path = "./common/credentials.rs"]
