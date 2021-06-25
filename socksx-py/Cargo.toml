@@ -11,7 +11,11 @@ name = "socksx"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.13", features = ["extension-module"] }
+pyo3 = "0.13"
 pyo3-asyncio = { version = "0.13", features = ["attributes", "tokio-runtime"] }
 socksx = { path = "../socksx" }
 tokio = { version = "1", features = ["full"] }
+
+[features]
+extension-module = ["pyo3/extension-module"]
+default = ["extension-module"]
