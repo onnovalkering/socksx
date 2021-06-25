@@ -1,10 +1,9 @@
+use crate::socket::SocketAddress;
 use pyo3::exceptions::PyOSError;
 use pyo3::prelude::*;
-use std::fmt::{self, Display, Formatter};
-use std::net::SocketAddr;
-use std::ops::DerefMut;
 use std::os::unix::io::AsRawFd;
 use std::sync::Arc;
+use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 use tokio::sync::RwLock;
 
@@ -14,6 +13,9 @@ pub struct Socket {
 }
 
 impl Socket {
+    ///
+    ///
+    ///
     pub fn new(socket: TcpStream) -> Self {
         let inner = Arc::new(RwLock::new(socket));
         Self { inner }
@@ -22,19 +24,38 @@ impl Socket {
 
 #[pymethods]
 impl Socket {
-    pub fn copy_bidirectional(
+    ///
+    ///
+    ///
+    #[staticmethod]
+    pub fn connect(
+        py: Python,
+        address: SocketAddress,
+    ) -> PyResult<PyObject> {
+        pyo3_asyncio::tokio::into_coroutine(py, async move {
+            let socket = TcpStream::connect(address.inner)
+                .await
+                .map_err(|_| PyOSError::new_err("TODO: custom errors"))
+                .map(Socket::new)?;
+
+            Ok(Python::with_gil(|gil| socket.into_py(gil)))
+        })
+    }
+
+    ///
+    ///
+    ///
+    pub fn flush(
         &mut self,
         py: Python,
-        other: &mut Socket,
     ) -> PyResult<PyObject> {
         let inner = self.inner.clone();
-        let other = other.inner.clone();
 
         pyo3_asyncio::tokio::into_coroutine(py, async move {
-            let mut inner = inner.write().await;
-            let mut other = other.write().await;
-
-            socksx::copy_bidirectional(&mut inner.deref_mut(), &mut other.deref_mut())
+            inner
+                .write()
+                .await
+                .flush()
                 .await
                 .map_err(|_| PyOSError::new_err("TODO: custom errors"))?;
 
@@ -43,6 +64,9 @@ impl Socket {
         })
     }
 
+    ///
+    ///
+    ///    
     pub fn get_original_dst(
         &mut self,
         py: Python,
@@ -59,6 +83,9 @@ impl Socket {
         })
     }
 
+    ///
+    ///
+    ///    
     pub fn get_raw_fd(
         &mut self,
         py: Python,
@@ -71,14 +98,17 @@ impl Socket {
         })
     }
 
+    ///
+    ///
+    ///    
     pub fn try_read_initial_data(
         &mut self,
         py: Python,
     ) -> PyResult<PyObject> {
         let inner = self.inner.clone();
-
-        // TODO: try to use socksx::try_read_initial_data.
+        
         pyo3_asyncio::tokio::into_coroutine(py, async move {
+            // TODO: try to use socksx::try_read_initial_data.
             let mut initial_data = Vec::with_capacity(2usize.pow(14)); // 16KB is the max
             inner.read().await.readable().await?;
 
@@ -96,25 +126,5 @@ impl Socket {
             let bytes = bytes.into_py(py);
             Ok(bytes)
         })
-    }
-}
-
-#[pyclass]
-pub struct SocketAddress {
-    pub(crate) inner: SocketAddr,
-}
-
-impl SocketAddress {
-    pub fn new(addr: SocketAddr) -> Self {
-        Self { inner: addr }
-    }
-}
-
-impl Display for SocketAddress {
-    fn fmt(
-        &self,
-        f: &mut Formatter<'_>,
-    ) -> fmt::Result {
-        self.inner.fmt(f)
     }
 }

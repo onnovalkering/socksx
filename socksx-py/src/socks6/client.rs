@@ -1,8 +1,7 @@
+use crate::socket::Socket;
 use pyo3::exceptions::PyOSError;
 use pyo3::prelude::*;
 use socksx::Socks6Client;
-
-use crate::socket::Socket;
 
 #[pyclass]
 #[derive(Clone)]

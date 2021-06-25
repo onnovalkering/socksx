@@ -1,19 +1,17 @@
-use std::sync::Arc;
-
+use crate::socket::Socket;
 use pyo3::exceptions::PyOSError;
 use pyo3::prelude::*;
+use std::sync::Arc;
 use tokio::net::TcpListener;
 
-use crate::socket::Socket;
-
 #[pyclass]
-pub struct TcpServer {
+pub struct SocketServer {
     _address: String,
     listener: Arc<TcpListener>,
 }
 
 #[pymethods]
-impl TcpServer {
+impl SocketServer {
     #[staticmethod]
     pub fn bind(
         py: Python,
@@ -28,7 +26,7 @@ impl TcpServer {
                 .map_err(|_| PyOSError::new_err("TODO: custom errors"))
                 .map(Arc::new)?;
 
-            let server = TcpServer {
+            let server = SocketServer {
                 _address: address,
                 listener,
             };
