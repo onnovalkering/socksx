@@ -1,8 +1,8 @@
 use crate::addresses::{self, Address};
-use crate::{ProxyAddress, constants::*};
 use crate::socks6::options::{
     AuthMethodAdvertisementOption, AuthMethodSelectionOption, MetadataOption, SocksOption, UnrecognizedOption,
 };
+use crate::{constants::*, ProxyAddress};
 use anyhow::{ensure, Result};
 use num_traits::FromPrimitive;
 use std::collections::HashMap;
@@ -73,12 +73,12 @@ impl Socks6Request {
         static_links: &[ProxyAddress],
     ) -> Result<Option<SocksChain>> {
         let length = self.metadata.get(&999u16);
-        
+
         let mut chain = if let Some(length) = length {
             let length: usize = length.parse()?;
             let index = self.metadata.get(&998u16).unwrap().parse()?;
 
-            let links: Vec<ProxyAddress> = (1000..1000+length)
+            let links: Vec<ProxyAddress> = (1000..1000 + length)
                 .map(|i| i as u16)
                 .map(|i| self.metadata.get(&i).unwrap().clone())
                 .map(|x| x.try_into().unwrap())

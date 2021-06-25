@@ -99,7 +99,10 @@ pin_project! {
 }
 
 impl<RW: AsyncRead + AsyncWrite> CryptStream<RW> {
-    pub fn new(stream: RW, key: String) -> CryptStream<RW> {
+    pub fn new(
+        stream: RW,
+        key: String,
+    ) -> CryptStream<RW> {
         CryptStream {
             inner: BufReader::new(BufWriter::new(stream)),
             key,

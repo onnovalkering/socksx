@@ -31,9 +31,9 @@ impl Socks6Client {
         })
     }
 
-    /// 
-    /// 
-    /// 
+    ///
+    ///
+    ///
     pub async fn connect<A>(
         &self,
         destination: A,

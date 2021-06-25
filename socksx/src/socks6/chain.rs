@@ -14,11 +14,11 @@ impl Default for SocksChain {
 }
 
 impl SocksChain {
-    pub fn new(index: usize, links: Vec<ProxyAddress>) -> Self {
-        Self {
-            index, 
-            links
-        }
+    pub fn new(
+        index: usize,
+        links: Vec<ProxyAddress>,
+    ) -> Self {
+        Self { index, links }
     }
 
     ///
@@ -43,7 +43,10 @@ impl SocksChain {
     ///
     ///
     ///
-    pub fn detour(&mut self, links: &[ProxyAddress]) {
+    pub fn detour(
+        &mut self,
+        links: &[ProxyAddress],
+    ) {
         let links = links.iter().cloned();
 
         if self.links.is_empty() {
@@ -52,7 +55,7 @@ impl SocksChain {
             self.links.push(ProxyAddress::root());
             self.links.extend(links);
         } else {
-            let position = self.index+1..self.index+1;
+            let position = self.index + 1..self.index + 1;
             self.links.splice(position, links);
         }
     }
@@ -61,7 +64,8 @@ impl SocksChain {
     ///
     ///
     pub fn as_options(&self) -> Vec<SocksOption> {
-        let mut chain_options: Vec<SocksOption> = self.links
+        let mut chain_options: Vec<SocksOption> = self
+            .links
             .iter()
             .enumerate()
             .map(|(i, c)| (i as u16, c.to_string()))
@@ -81,15 +85,18 @@ mod tests {
 
     #[test]
     pub fn abc() {
-        let mut chain = SocksChain::new(1, vec![
-            ProxyAddress::new(6, String::from("localhost"), 1, None),
-            ProxyAddress::new(6, String::from("localhost"), 2, None),
-            ProxyAddress::new(6, String::from("localhost"), 3, None)
-        ]);
+        let mut chain = SocksChain::new(
+            1,
+            vec![
+                ProxyAddress::new(6, String::from("localhost"), 1, None),
+                ProxyAddress::new(6, String::from("localhost"), 2, None),
+                ProxyAddress::new(6, String::from("localhost"), 3, None),
+            ],
+        );
 
         let extra = vec![
             ProxyAddress::new(6, String::from("localhost"), 4, None),
-            ProxyAddress::new(6, String::from("localhost"), 5, None)
+            ProxyAddress::new(6, String::from("localhost"), 5, None),
         ];
         chain.detour(&extra);
 
