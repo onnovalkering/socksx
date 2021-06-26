@@ -1,10 +1,12 @@
 use pyo3::prelude::*;
 
 mod address;
+mod function;
 mod server;
 mod socket;
 
 pub use address::SocketAddress;
+pub use function::SocketFunction;
 pub use server::SocketServer;
 pub use socket::Socket;
 

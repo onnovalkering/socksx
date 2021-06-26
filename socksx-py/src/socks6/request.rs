@@ -1,7 +1,7 @@
-use pyo3::prelude::*;
-use socksx::Address;
-use socksx::socks6::Socks6Request;
 use crate::socket::SocketAddress;
+use pyo3::prelude::*;
+use socksx::socks6::Socks6Request;
+use socksx::Address;
 
 #[pyclass]
 #[derive(Clone)]

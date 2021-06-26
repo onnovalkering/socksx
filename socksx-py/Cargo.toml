@@ -11,6 +11,8 @@ name = "socksx"
 crate-type = ["cdylib"]
 
 [dependencies]
+bytes = "1"
+pin-project-lite = "0.2"
 pyo3 = "0.13"
 pyo3-asyncio = { version = "0.13", features = ["attributes", "tokio-runtime"] }
 socksx = { path = "../socksx" }

@@ -10,6 +10,7 @@ use tokio::sync::RwLock;
 #[pyclass]
 pub struct Socket {
     pub(crate) inner: Arc<RwLock<TcpStream>>,
+    pub(crate) function: Option<PyObject>,
 }
 
 impl Socket {
@@ -18,7 +19,7 @@ impl Socket {
     ///
     pub fn new(socket: TcpStream) -> Self {
         let inner = Arc::new(RwLock::new(socket));
-        Self { inner }
+        Self { inner, function: None }
     }
 }
 
@@ -40,6 +41,17 @@ impl Socket {
 
             Ok(Python::with_gil(|gil| socket.into_py(gil)))
         })
+    }
+
+    ///
+    ///
+    ///
+    pub fn apply(
+        &mut self,
+        _py: Python,
+        function: PyObject,
+    ) {
+        self.function = Some(function);
     }
 
     ///
@@ -106,7 +118,7 @@ impl Socket {
         py: Python,
     ) -> PyResult<PyObject> {
         let inner = self.inner.clone();
-        
+
         pyo3_asyncio::tokio::into_coroutine(py, async move {
             // TODO: try to use socksx::try_read_initial_data.
             let mut initial_data = Vec::with_capacity(2usize.pow(14)); // 16KB is the max

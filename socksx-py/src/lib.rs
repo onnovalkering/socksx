@@ -43,14 +43,20 @@ pub fn copy_bidirectional(
     a: &mut Socket,
     b: &mut Socket,
 ) -> PyResult<PyObject> {
-    let a = a.inner.clone();
-    let b = b.inner.clone();
+    let a_tcp = a.inner.clone();
+    let b_tcp = b.inner.clone();
+
+    let a_fn = a.function.clone();
+    let b_fn = b.function.clone();
 
     pyo3_asyncio::tokio::into_coroutine(py, async move {
-        let mut a = a.write().await;
-        let mut b = b.write().await;
+        let mut a_tcp = a_tcp.write().await;
+        let mut b_tcp = b_tcp.write().await;
 
-        socksx::copy_bidirectional(&mut a.deref_mut(), &mut b.deref_mut())
+        let mut a = SocketFunction::new(a_tcp.deref_mut(), a_fn);
+        let mut b = SocketFunction::new(b_tcp.deref_mut(), b_fn);
+
+        socksx::copy_bidirectional(&mut a, &mut b)
             .await
             .map_err(|_| PyOSError::new_err("TODO: custom errors"))?;
 
