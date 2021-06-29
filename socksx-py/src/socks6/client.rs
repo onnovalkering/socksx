@@ -1,4 +1,5 @@
 use crate::socket::Socket;
+use crate::socket::SocketAddress;
 use pyo3::exceptions::PyOSError;
 use pyo3::prelude::*;
 use socksx::Socks6Client;
@@ -18,10 +19,11 @@ impl Client {
 
     fn connect(
         &mut self,
-        destination: String,
         py: Python,
+        destination: SocketAddress,
     ) -> PyResult<PyObject> {
         let proxy_addr = self.proxy_addr.clone();
+        let destination = destination.inner.to_string();
 
         pyo3_asyncio::tokio::into_coroutine(py, async move {
             let client = Socks6Client::new(proxy_addr, None)

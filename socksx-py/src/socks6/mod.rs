@@ -7,6 +7,7 @@ use socksx;
 use socksx::socks6::Socks6Reply;
 use std::ops::DerefMut;
 
+mod chain;
 mod client;
 mod request;
 
@@ -15,6 +16,7 @@ fn socks6(
     _py: Python,
     m: &PyModule,
 ) -> PyResult<()> {
+    m.add_class::<chain::Chain>()?;
     m.add_class::<client::Client>()?;
     m.add_class::<request::Request>()?;
 

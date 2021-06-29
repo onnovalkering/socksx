@@ -12,3 +12,12 @@ impl SocketAddress {
         Self { inner: address }
     }
 }
+
+#[pymethods]
+impl SocketAddress {
+    #[new]
+    pub fn __new__(address: String) -> PyResult<Self> {
+        let inner = address.parse()?;
+        Ok(Self { inner })
+    }
+}

@@ -6,7 +6,7 @@ mod server;
 mod socket;
 
 pub use address::SocketAddress;
-pub use function::SocketFunction;
+pub use function::SocketFunctionBuf;
 pub use server::SocketServer;
 pub use socket::Socket;
 
@@ -17,6 +17,7 @@ fn socket(
 ) -> PyResult<()> {
     // Wrappers
     m.add_class::<address::SocketAddress>()?;
+    m.add_class::<function::SocketFunction>()?;
     m.add_class::<server::SocketServer>()?;
     m.add_class::<socket::Socket>()?;
 

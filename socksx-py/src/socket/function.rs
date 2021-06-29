@@ -5,28 +5,45 @@ use std::task::{Context, Poll};
 use tokio::io::{self, AsyncBufRead, BufReader, BufWriter};
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
+#[pyclass(subclass)]
+pub struct SocketFunction {}   
+
+#[pymethods]
+impl SocketFunction {
+    #[new]
+    pub fn __new__() -> Self {
+        Self { }
+    }
+
+    pub fn partial(&mut self, data: Vec<u8>) -> PyResult<Vec<u8>> {
+        Ok(data)
+    }
+
+    pub fn end(&mut self) { }    
+}
+
 pin_project! {
     #[derive(Debug)]
-    pub struct SocketFunction<RW> {
+    pub struct SocketFunctionBuf<RW> {
         #[pin]
         inner: BufReader<BufWriter<RW>>,
         function: Option<PyObject>,
     }
 }
 
-impl<RW: AsyncRead + AsyncWrite> SocketFunction<RW> {
+impl<RW: AsyncRead + AsyncWrite> SocketFunctionBuf<RW> {
     pub fn new(
         stream: RW,
         function: Option<PyObject>,
-    ) -> SocketFunction<RW> {
-        SocketFunction {
+    ) -> SocketFunctionBuf<RW> {
+        SocketFunctionBuf {
             inner: BufReader::new(BufWriter::new(stream)),
             function,
         }
     }
 }
 
-impl<RW: AsyncRead + AsyncWrite> AsyncWrite for SocketFunction<RW> {
+impl<RW: AsyncRead + AsyncWrite> AsyncWrite for SocketFunctionBuf<RW> {
     fn poll_write(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
@@ -50,7 +67,7 @@ impl<RW: AsyncRead + AsyncWrite> AsyncWrite for SocketFunction<RW> {
     }
 }
 
-impl<RW: AsyncRead + AsyncWrite> AsyncRead for SocketFunction<RW> {
+impl<RW: AsyncRead + AsyncWrite> AsyncRead for SocketFunctionBuf<RW> {
     fn poll_read(
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
@@ -66,8 +83,14 @@ impl<RW: AsyncRead + AsyncWrite> AsyncRead for SocketFunction<RW> {
         let amt = std::cmp::min(remaining.len(), buf.remaining());
         let data = remaining[..amt].to_vec();
 
-        // Apply function
+        // Apply function, if any, to data.
         let data = if let Some(function) = &self.function {
+            if data.is_empty() {
+                // If data is empty, we reached EOF.
+                end(function)?;
+                return Poll::Ready(Ok(()))
+            }
+
             partial(function, data)?
         } else {
             data
@@ -80,6 +103,9 @@ impl<RW: AsyncRead + AsyncWrite> AsyncRead for SocketFunction<RW> {
     }
 }
 
+///
+///
+///
 pub fn partial(function: &PyObject, data: Vec<u8>) -> PyResult<Vec<u8>> {
     let gil = Python::acquire_gil();
     let py = gil.python();
@@ -88,4 +114,15 @@ pub fn partial(function: &PyObject, data: Vec<u8>) -> PyResult<Vec<u8>> {
     let data: Vec<u8> = data.extract(py)?;
 
     Ok(data)
+}
+
+///
+///
+///
+pub fn end(function: &PyObject) -> PyResult<()> {
+    let gil = Python::acquire_gil();
+    let py = gil.python();
+
+    function.call_method1(py, "end", ())?;
+    Ok(())
 }

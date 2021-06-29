@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 from asyncio import get_event_loop
 from socksx import copy_bidirectional, socks6
-from socksx.socket import Socket, SocketServer
+from socksx.socket import Socket, SocketServer, SocketFunction
 
-class Counter:
+class Counter(SocketFunction):
     """
     Doesn't perform any transformation, just counts the observed bytes.
     """
@@ -16,9 +16,12 @@ class Counter:
 
         return bytes
 
+    def end(self):
+        print("EOF")
+
 
 async def main(loop):
-    server = await SocketServer.bind('localhost', 1080)
+    server = await SocketServer.bind('localhost', 1081)
 
     while True:
         source = await server.accept()

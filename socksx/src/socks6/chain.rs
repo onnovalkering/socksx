@@ -31,6 +31,13 @@ impl SocksChain {
     ///
     ///
     ///
+    pub fn has_next(&self) -> bool {
+        self.index + 1 < self.links.len()
+    }    
+
+    ///
+    ///
+    ///
     pub fn next_link(&mut self) -> Option<&ProxyAddress> {
         let link = self.links.get(self.index + 1);
         if link.is_some() {

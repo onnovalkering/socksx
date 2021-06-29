@@ -53,8 +53,8 @@ pub fn copy_bidirectional(
         let mut a_tcp = a_tcp.write().await;
         let mut b_tcp = b_tcp.write().await;
 
-        let mut a = SocketFunction::new(a_tcp.deref_mut(), a_fn);
-        let mut b = SocketFunction::new(b_tcp.deref_mut(), b_fn);
+        let mut a = SocketFunctionBuf::new(a_tcp.deref_mut(), a_fn);
+        let mut b = SocketFunctionBuf::new(b_tcp.deref_mut(), b_fn);
 
         socksx::copy_bidirectional(&mut a, &mut b)
             .await

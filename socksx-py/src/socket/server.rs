@@ -12,12 +12,17 @@ pub struct SocketServer {
 
 #[pymethods]
 impl SocketServer {
+    ///
+    ///
+    ///
     #[staticmethod]
     pub fn bind(
         py: Python,
         host: String,
         port: u16,
     ) -> PyResult<PyObject> {
+        // TODO: validate host
+
         let address = format!("{}:{}", host, port);
 
         pyo3_asyncio::tokio::into_coroutine(py, async move {
@@ -35,6 +40,9 @@ impl SocketServer {
         })
     }
 
+    ///
+    ///
+    ///
     pub fn accept(
         &mut self,
         py: Python,
