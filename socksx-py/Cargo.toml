@@ -21,3 +21,6 @@ tokio = { version = "1", features = ["full"] }
 [features]
 extension-module = ["pyo3/extension-module"]
 default = ["extension-module"]
+
+[package.metadata.maturin]
+name = "socksx"
