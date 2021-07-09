@@ -67,12 +67,8 @@ impl SocksHandler for Socks6Handler {
         let request = socks6::read_request(source).await?;
         socks6::write_no_authentication(source).await?;
 
-        println!("{:?}", request);
-
         let destination = request.destination.to_string();
         let chain = request.chain(&self.static_links)?;
-
-        println!("{:?}", chain);
 
         let mut destination = if let Some(mut chain) = chain {
             if let Some(next) = chain.next_link() {
