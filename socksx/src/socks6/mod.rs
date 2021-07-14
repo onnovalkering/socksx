@@ -321,8 +321,8 @@ where
     let reply_code = operation_reply[1];
     ensure!(
         reply_code == SOCKS_REP_SUCCEEDED,
-        "CONNECT operation failed: {}",
-        reply_code
+        "CONNECT operation failed: {:?}",
+        Socks6Reply::from_u8(reply_code)
     );
 
     let binding = addresses::read_address(stream).await?;

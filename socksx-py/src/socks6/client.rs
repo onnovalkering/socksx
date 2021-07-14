@@ -28,12 +28,12 @@ impl Client {
         pyo3_asyncio::tokio::into_coroutine(py, async move {
             let client = Socks6Client::new(proxy_addr, None)
                 .await
-                .map_err(|_| PyOSError::new_err("TODO: custom errors"))?;
+                .map_err(|e| PyOSError::new_err(e.to_string()))?;
 
             let (socket, _) = client
                 .connect(destination, None, None)
                 .await
-                .map_err(|_| PyOSError::new_err("TODO: custom errors"))?;
+                .map_err(|e| PyOSError::new_err(e.to_string()))?;
 
             let gil = Python::acquire_gil();
             let py = gil.python();
