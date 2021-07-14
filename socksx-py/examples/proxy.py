@@ -4,8 +4,6 @@ from click import command, option, Choice
 from socksx import copy_bidirectional, socks6
 from socksx.socket import Socket, SocketServer
 
-LOCAL_CHAIN=[]
-
 @command()
 @option('-c', '--chain', multiple=True, help="Entry in the proxy chain, the order is preserved")
 @option('-d', '--debug', default=False, help="Prints debug information")
@@ -35,6 +33,7 @@ async def accept_request(source, local_chain):
 
     """
     destination = await setup(source, local_chain)
+
     copy_bidirectional(source, destination)
 
 
@@ -45,7 +44,7 @@ async def setup(source, local_chain):
     request = await socks6.read_request(source)
     await socks6.write_no_authentication(source)
 
-    # Determine chain
+    # Adhere to the chain.
     chain = request.chain(local_chain)
     if chain is not None and chain.has_next():
         next = chain.next_link()
