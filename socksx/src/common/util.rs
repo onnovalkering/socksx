@@ -5,7 +5,7 @@ use tokio::net::{self, TcpStream};
 ///
 ///
 ///
-#[cfg(unix)]
+#[cfg(any(target_os = "linux"))]
 pub fn get_original_dst<S: os::unix::io::AsRawFd>(socket: &S) -> Result<SocketAddr> {
     use nix::sys::socket::{self, sockopt, InetAddr};
 
@@ -13,6 +13,11 @@ pub fn get_original_dst<S: os::unix::io::AsRawFd>(socket: &S) -> Result<SocketAd
     let orignal_dst = InetAddr::V4(orignal_dst).to_std();
 
     Ok(orignal_dst)
+}
+
+#[cfg(not(any(target_os = "linux")))]
+pub fn get_original_dst<S: os::unix::io::AsRawFd>(_socket: &S) -> Result<SocketAddr> {
+    todo!()
 }
 
 ///
