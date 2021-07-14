@@ -20,4 +20,14 @@ impl SocketAddress {
         let inner = address.parse()?;
         Ok(Self { inner })
     }
+
+    #[getter]
+    fn port(&self) -> PyResult<u16> {
+        Ok(self.inner.port())
+    }
+
+    #[getter]
+    fn ip(&self) -> PyResult<String> {
+        Ok(self.inner.ip().to_string())
+    }    
 }
