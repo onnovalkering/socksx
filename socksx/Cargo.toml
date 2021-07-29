@@ -1,6 +1,6 @@
 [package]
 name = "socksx"
-version = "0.1.0"
+version = "0.1.1"
 description = "A SOCKS toolkit for Rust"
 authors = ["Onno Valkering"]
 edition = "2018"
