@@ -1,5 +1,6 @@
 use crate::socket::Socket;
 use crate::socket::SocketAddress;
+use crate::socks6::chain::Chain;
 use pyo3::exceptions::PyOSError;
 use pyo3::prelude::*;
 use socksx::Socks6Client;
@@ -21,6 +22,7 @@ impl Client {
         &mut self,
         py: Python,
         destination: SocketAddress,
+        chain: Option<Chain>,
     ) -> PyResult<PyObject> {
         let proxy_addr = self.proxy_addr.clone();
         let destination = destination.inner.to_string();
@@ -30,8 +32,10 @@ impl Client {
                 .await
                 .map_err(|e| PyOSError::new_err(e.to_string()))?;
 
+            let options = chain.map(|c| c.inner.as_options()).unwrap_or_default();
+
             let (socket, _) = client
-                .connect(destination, None, None)
+                .connect(destination, None, Some(options))
                 .await
                 .map_err(|e| PyOSError::new_err(e.to_string()))?;
 

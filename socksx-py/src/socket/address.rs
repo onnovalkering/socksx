@@ -29,5 +29,5 @@ impl SocketAddress {
     #[getter]
     fn ip(&self) -> PyResult<String> {
         Ok(self.inner.ip().to_string())
-    }    
+    }
 }

@@ -1,10 +1,10 @@
-use std::convert::TryFrom;
 use crate::socket::SocketAddress;
 use crate::socks6::chain::Chain;
 use pyo3::exceptions::PyOSError;
 use pyo3::prelude::*;
 use socksx::socks6::Socks6Request;
 use socksx::{Address, ProxyAddress};
+use std::convert::TryFrom;
 
 #[pyclass]
 #[derive(Clone)]
@@ -21,8 +21,8 @@ impl Request {
 #[pymethods]
 impl Request {
     fn chain(
-        &mut self, 
-        static_links: Option<Vec<String>>
+        &mut self,
+        static_links: Option<Vec<String>>,
     ) -> PyResult<Option<Chain>> {
         let static_links: Vec<ProxyAddress> = static_links
             .unwrap_or_default()
@@ -30,7 +30,8 @@ impl Request {
             .map(|sl| ProxyAddress::try_from(sl).unwrap())
             .collect();
 
-        self.inner.chain(&static_links)
+        self.inner
+            .chain(&static_links)
             .map_err(|_| PyOSError::new_err("TODO: custom errors"))
             .map(|c| c.map(Chain::new))
     }

@@ -51,7 +51,7 @@ async def setup(source, local_chain):
         client = socks6.Client(f"{next.host}:{next.port}")
 
         # Connect to destination through another proxy.
-        destination = await client.connect(request.destination)
+        destination = await client.connect(request.destination, chain)
     else:
         # Connect directly to the destination.
         destination = await Socket.connect(request.destination)

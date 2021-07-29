@@ -1,18 +1,16 @@
 use pyo3::prelude::*;
-use socksx::ProxyAddress;
 use socksx::socks6::SocksChain;
+use socksx::ProxyAddress;
 
 #[pyclass]
 #[derive(Clone)]
 pub struct Chain {
-    pub(crate) inner: SocksChain
+    pub(crate) inner: SocksChain,
 }
 
 impl Chain {
     pub fn new(chain: SocksChain) -> Self {
-        Self {
-            inner: chain
-        }
+        Self { inner: chain }
     }
 }
 
@@ -36,7 +34,7 @@ impl Chain {
 #[pyclass]
 #[derive(Clone)]
 pub struct ChainLink {
-    pub(crate) inner: ProxyAddress
+    pub(crate) inner: ProxyAddress,
 }
 
 impl ChainLink {
@@ -44,9 +42,7 @@ impl ChainLink {
     ///
     ///
     pub fn new(inner: ProxyAddress) -> Self {
-        Self {
-            inner
-        }
+        Self { inner }
     }
 }
 
@@ -60,5 +56,5 @@ impl ChainLink {
     #[getter]
     fn port(&self) -> u16 {
         self.inner.port
-    }    
+    }
 }

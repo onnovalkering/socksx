@@ -33,7 +33,7 @@ impl SocksChain {
     ///
     pub fn has_next(&self) -> bool {
         self.index + 1 < self.links.len()
-    }    
+    }
 
     ///
     ///

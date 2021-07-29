@@ -6,20 +6,23 @@ use tokio::io::{self, AsyncBufRead, BufReader, BufWriter};
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
 #[pyclass(subclass)]
-pub struct SocketFunction {}   
+pub struct SocketFunction {}
 
 #[pymethods]
 impl SocketFunction {
     #[new]
     pub fn __new__() -> Self {
-        Self { }
+        Self {}
     }
 
-    pub fn partial(&mut self, data: Vec<u8>) -> PyResult<Vec<u8>> {
+    pub fn partial(
+        &mut self,
+        data: Vec<u8>,
+    ) -> PyResult<Vec<u8>> {
         Ok(data)
     }
 
-    pub fn end(&mut self) { }    
+    pub fn end(&mut self) {}
 }
 
 pin_project! {
@@ -88,7 +91,7 @@ impl<RW: AsyncRead + AsyncWrite> AsyncRead for SocketFunctionBuf<RW> {
             if data.is_empty() {
                 // If data is empty, we reached EOF.
                 end(function)?;
-                return Poll::Ready(Ok(()))
+                return Poll::Ready(Ok(()));
             }
 
             partial(function, data)?
@@ -106,7 +109,10 @@ impl<RW: AsyncRead + AsyncWrite> AsyncRead for SocketFunctionBuf<RW> {
 ///
 ///
 ///
-pub fn partial(function: &PyObject, data: Vec<u8>) -> PyResult<Vec<u8>> {
+pub fn partial(
+    function: &PyObject,
+    data: Vec<u8>,
+) -> PyResult<Vec<u8>> {
     let gil = Python::acquire_gil();
     let py = gil.python();
 
