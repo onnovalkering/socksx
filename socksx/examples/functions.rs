@@ -2,7 +2,7 @@ use anyhow::Result;
 use bytes::BytesMut;
 use chacha20::cipher::{NewCipher, StreamCipher};
 use chacha20::{ChaCha20, Key, Nonce};
-use clap::Clap;
+use clap::Parser;
 use dotenv::dotenv;
 use pin_project_lite::pin_project;
 use socksx::{self, Socks5Handler, Socks6Handler, SocksHandler};
@@ -15,7 +15,7 @@ use tokio::net::{TcpListener, TcpStream};
 
 type Handler = Arc<dyn SocksHandler + Sync + Send>;
 
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(version = env!("CARGO_PKG_VERSION"))]
 struct Args {
     /// Host (IP) for the SOCKS server
@@ -34,7 +34,7 @@ struct Args {
     function: Function,
 }
 
-#[derive(Clap, Clone)]
+#[derive(Parser, Clone)]
 enum Function {
     /// Apply ChaCha20 encryption/decryption to ingress traffic
     #[clap(name = "chacha20")]

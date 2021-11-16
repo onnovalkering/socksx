@@ -2,7 +2,7 @@
 extern crate human_panic;
 
 use anyhow::Result;
-use clap::Clap;
+use clap::Parser;
 use dotenv::dotenv;
 use itertools::Itertools;
 use log::LevelFilter;
@@ -14,11 +14,11 @@ use tokio::time::Instant;
 
 type Handler = Arc<dyn SocksHandler + Sync + Send>;
 
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(version = env!("CARGO_PKG_VERSION"))]
 struct Args {
     /// Entry in the proxy chain, the order is preserved
-    #[clap(short, long, env = "CHAIN", multiple = true)]
+    #[clap(short, long, env = "CHAIN", multiple_occurrences = true)]
     chain: Vec<String>,
 
     /// Prints debug information
