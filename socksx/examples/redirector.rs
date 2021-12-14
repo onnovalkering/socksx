@@ -12,18 +12,18 @@ async fn main() -> Result<()> {
             Arg::new("VERSION")
                 .short('s')
                 .long("socks")
-                .about("The SOCKS version to use")
+                .help("The SOCKS version to use")
                 .possible_values(&["5", "6"])
                 .default_value("5"),
         )
         .arg(
             Arg::new("PROXY_HOST")
-                .about("The IP/hostname of the proxy")
+                .help("The IP/hostname of the proxy")
                 .default_value("127.0.0.1"),
         )
         .arg(
             Arg::new("PROXY_PORT")
-                .about("The port of the proxy server")
+                .help("The port of the proxy server")
                 .default_value("1080"),
         )
         .get_matches();

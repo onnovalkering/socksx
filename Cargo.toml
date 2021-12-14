@@ -1,5 +1,8 @@
 [workspace]
 members = [
     "socksx",
-    "socksx-py",
+]
+
+exclude = [
+    "socksx-py"
 ]
