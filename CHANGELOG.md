@@ -2,6 +2,13 @@
 
 All notable changes to `socksx` will be documented in this file.
 
+## [0.1.2] - 2021-12-14
+### Added
+- Automated coverage and release workflows.
+
+### Fixed 
+- Breaking changes from the `clap` library.
+
 ## [0.1.1] - 2021-07-29
 ### Added
 - Experimental support for chaining (SOCKS6).
